@@ -76,7 +76,6 @@ const AdminDash = () => {
       });
 
       // 🛠️ FIX: Check for 'success' boolean OR status code 201 (Created)
-      // This handles both old and new backend response formats
       if (res.data.success || res.status === 201) {
         alert(`✅ ${activeTab === 'students' ? 'Student' : 'Teacher'} Added Successfully!`);
         
@@ -86,7 +85,6 @@ const AdminDash = () => {
         // Clear Form
         setFormData({ name: '', email: '', password: '', course: '', subject: '', fees: 'Pending' });
       } else {
-        // Fallback error if success is false
         alert("⚠️ Registration Failed: " + (res.data.message || "Unknown Error"));
       }
 
