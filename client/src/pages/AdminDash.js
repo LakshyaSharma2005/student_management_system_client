@@ -10,8 +10,8 @@ const AdminDash = () => {
   const [students, setStudents] = useState([]);
   const [teachers, setTeachers] = useState([]);
   const [notices, setNotices] = useState([
-    { id: 1, title: "Semester Exams", date: "2025-12-20", type: "Urgent" },
-    { id: 2, title: "Winter Vacation", date: "2025-12-25", type: "General" }
+    { id: 1, title: "Semester Exams Start Dec 20", date: "2025-12-15", type: "Urgent" },
+    { id: 2, title: "Winter Vacation Announced", date: "2025-12-18", type: "General" }
   ]);
   
   // UI States
@@ -22,6 +22,10 @@ const AdminDash = () => {
   // Form State
   const [formData, setFormData] = useState({ name: '', email: '', password: '', course: '', subject: '', fees: 'Pending' });
 
+  // 🔒 REAL BACKEND URL
+  // We use the direct Render URL to ensure connection works perfectly
+  const SERVER_URL = "https://student-management-system-server-vygt.onrender.com";
+
   // 🔄 Initial Load
   useEffect(() => {
     fetchData();
@@ -30,67 +34,84 @@ const AdminDash = () => {
   const fetchData = async () => {
     try {
       const token = localStorage.getItem('token');
-      // Try fetching Students
-      const sRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/admin/students`, { headers: { Authorization: token } });
-      setStudents(sRes.data);
       
-      // Try fetching Teachers (Mock if endpoint missing)
+      // 1. Fetch Students
+      const sRes = await axios.get(`${SERVER_URL}/api/admin/students`, { headers: { Authorization: token } });
+      if (sRes.data.success !== false) setStudents(sRes.data);
+      
+      // 2. Fetch Teachers
       try {
-        const tRes = await axios.get(`${import.meta.env.VITE_API_URL}/api/admin/teachers`, { headers: { Authorization: token } });
-        setTeachers(tRes.data);
-      } catch {
-        // Fallback Mock Data for Teachers
-        setTeachers([
-          { _id: 1, name: "Dr. A.P. Singh", email: "singh@uni.edu", subject: "Physics", status: "Active" },
-          { _id: 2, name: "Prof. Mary Jane", email: "mary@uni.edu", subject: "English", status: "On Leave" }
-        ]);
+        const tRes = await axios.get(`${SERVER_URL}/api/admin/teachers`, { headers: { Authorization: token } });
+        if (tRes.data) setTeachers(tRes.data);
+      } catch (err) {
+        console.log("Teacher fetch failed (using mock for display)");
       }
+
     } catch (err) {
-      console.log("Using Demo Data due to fetch error");
-      // Fallback Mock Data for Students
-      setStudents([
-        { _id: 1, name: "Rahul Verma", email: "rahul@gmail.com", course: "B.Tech", fees: "Paid" },
-        { _id: 2, name: "Priya Sharma", email: "priya@gmail.com", course: "MBA", fees: "Pending" },
-        { _id: 3, name: "Amit Kumar", email: "amit@gmail.com", course: "BCA", fees: "Paid" },
-      ]);
+      console.error("Fetch Error:", err);
     }
   };
 
-  // 📝 Handle Form Submit (Add or Edit)
+  // 📝 Handle Form Submit (REAL DATABASE CONNECTION)
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    
-    // Simulate API Call delay
-    setTimeout(() => {
-      const newItem = { ...formData, _id: Date.now() }; // Fake ID for demo
+
+    try {
+      const token = localStorage.getItem('token');
       
-      if (activeTab === 'students') {
-        setStudents([...students, newItem]);
-      } else if (activeTab === 'teachers') {
-        setTeachers([...teachers, newItem]);
-      } else if (activeTab === 'notices') {
-        setNotices([...notices, { id: Date.now(), title: formData.name, date: new Date().toISOString().split('T')[0], type: "General" }]);
+      // 1. Prepare Data Payload
+      const payload = {
+        name: formData.name,
+        email: formData.email,
+        password: formData.password || '123456', // Default password if empty
+        role: activeTab === 'students' ? 'Student' : 'Teacher',
+        course: formData.course,
+        subject: formData.subject,
+        fees: formData.fees || 'Pending'
+      };
+
+      // 2. Send to Backend
+      // This actually creates the user in MongoDB!
+      const res = await axios.post(`${SERVER_URL}/api/auth/register`, payload, {
+        headers: { Authorization: token }
+      });
+
+      // 3. Update UI on Success
+      if (res.data.success) {
+        alert(`✅ ${activeTab === 'students' ? 'Student' : 'Teacher'} Added Successfully!`);
+        
+        // Refresh the list immediately from the database
+        fetchData(); 
+        
+        // Clear Form
+        setFormData({ name: '', email: '', password: '', course: '', subject: '', fees: 'Pending' });
+      } else {
+        alert("⚠️ Registration Failed: " + res.data.message);
       }
 
-      alert(isEditing ? "Updated Successfully!" : "Added Successfully!");
-      setFormData({ name: '', email: '', password: '', course: '', subject: '', fees: 'Pending' });
-      setLoading(false);
-    }, 500);
+    } catch (err) {
+      console.error("Registration Error:", err);
+      alert("❌ Failed to add user: " + (err.response?.data?.message || err.message));
+    }
+    
+    setLoading(false);
   };
 
-  const handleDelete = (id, type) => {
-    if(window.confirm("Are you sure?")) {
-      if(type === 'students') setStudents(students.filter(s => s._id !== id));
-      if(type === 'teachers') setTeachers(teachers.filter(t => t._id !== id));
-      if(type === 'notices') setNotices(notices.filter(n => n.id !== id));
-    }
+  const handleDelete = async (id, type) => {
+    if(!window.confirm("Are you sure?")) return;
+
+    // For now, we update the UI optimistically. 
+    // You can add a DELETE endpoint call here later.
+    if(type === 'students') setStudents(students.filter(s => s._id !== id));
+    if(type === 'teachers') setTeachers(teachers.filter(t => t._id !== id));
+    if(type === 'notices') setNotices(notices.filter(n => n.id !== id));
   };
 
   // 🔍 Filter Logic
   const getDataToDisplay = () => {
-    if (activeTab === 'students') return students.filter(s => s.name.toLowerCase().includes(searchTerm.toLowerCase()));
-    if (activeTab === 'teachers') return teachers.filter(t => t.name.toLowerCase().includes(searchTerm.toLowerCase()));
+    if (activeTab === 'students') return students.filter(s => s.name?.toLowerCase().includes(searchTerm.toLowerCase()));
+    if (activeTab === 'teachers') return teachers.filter(t => t.name?.toLowerCase().includes(searchTerm.toLowerCase()));
     return [];
   };
 
@@ -166,7 +187,7 @@ const AdminDash = () => {
                 <form onSubmit={handleSubmit} style={styles.form}>
                   <input type="text" placeholder="Full Name" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required style={styles.input} />
                   <input type="email" placeholder="Email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} required style={styles.input} />
-                  {!isEditing && <input type="password" placeholder="Password" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} required style={styles.input} />}
+                  {!isEditing && <input type="password" placeholder="Password (Default: 123456)" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} style={styles.input} />}
                   
                   {activeTab === 'students' ? (
                      <>
@@ -175,6 +196,7 @@ const AdminDash = () => {
                         <option value="BCA">BCA</option>
                         <option value="B.Tech">B.Tech</option>
                         <option value="MBA">MBA</option>
+                        <option value="B.Sc">B.Sc</option>
                       </select>
                       <select value={formData.fees} onChange={e => setFormData({...formData, fees: e.target.value})} style={styles.select}>
                         <option value="Pending">Fees: Pending</option>
@@ -185,7 +207,7 @@ const AdminDash = () => {
                     <input type="text" placeholder="Subject" value={formData.subject} onChange={e => setFormData({...formData, subject: e.target.value})} style={styles.input} required />
                   )}
 
-                  <button type="submit" disabled={loading} style={styles.submitBtn}>{loading ? "Processing..." : "Save Record"}</button>
+                  <button type="submit" disabled={loading} style={styles.submitBtn}>{loading ? "Saving..." : "Save Record"}</button>
                   {isEditing && <button type="button" onClick={() => {setIsEditing(null); setFormData({ name: '', email: '', password: '', course: '', subject: '' })}} style={styles.cancelBtn}>Cancel</button>}
                 </form>
               </div>
@@ -218,11 +240,11 @@ const AdminDash = () => {
                           </td>
                         )}
                         <td style={styles.td}>
-                          <button onClick={() => {setIsEditing(user._id); setFormData(user)}} style={styles.actionBtn}>✏️</button>
                           <button onClick={() => handleDelete(user._id, activeTab)} style={{...styles.actionBtn, color: '#e74c3c'}}>🗑️</button>
                         </td>
                       </tr>
                     ))}
+                    {getDataToDisplay().length === 0 && <tr><td colSpan="5" style={{padding:'20px', textAlign:'center', color:'#999'}}>No users found.</td></tr>}
                   </tbody>
                 </table>
               </div>
@@ -259,7 +281,7 @@ const AdminDash = () => {
             <div style={styles.actionArea}>
               <div style={styles.formCard}>
                 <h3>📢 Post Notice</h3>
-                <form onSubmit={handleSubmit}>
+                <form onSubmit={(e) => { e.preventDefault(); setNotices([...notices, {id: Date.now(), title: formData.name, date: new Date().toISOString().split('T')[0]}]); setFormData({...formData, name: ''}); }}>
                   <input type="text" placeholder="Notice Title" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} style={styles.input} required />
                   <br /><br />
                   <button type="submit" style={styles.submitBtn}>Post Notice</button>

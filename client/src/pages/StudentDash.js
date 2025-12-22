@@ -4,14 +4,14 @@ import { useNavigate } from 'react-router-dom';
 
 const StudentDash = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('dashboard'); // dashboard, attendance, marks, fees
+  const [activeTab, setActiveTab] = useState('fees'); // Default to fees to show the feature
   
   // Data States
   const [student, setStudent] = useState({ name: 'Student', email: '', course: 'B.Tech', roll: 'Unknown' });
   const [attendance, setAttendance] = useState([]);
   const [marks, setMarks] = useState([]);
-  // Removed setFees to fix "unused variable" warning
-  const [fees] = useState({ status: 'Pending', amount: 50000, due: '2025-01-15' });
+  const [fees, setFees] = useState({ status: 'Pending', amount: 50000, due: '2025-01-15' });
+  const [loadingPay, setLoadingPay] = useState(false);
 
   // 🔄 Initial Load
   useEffect(() => {
@@ -19,7 +19,6 @@ const StudentDash = () => {
       // 1. Load User Info
       const user = JSON.parse(localStorage.getItem('user'));
       if (user) {
-        // FIX: Use functional update (prev) to avoid dependency warning
         setStudent(prev => ({ ...prev, name: user.name, email: user.email, roll: 'CS-2025-001' }));
       }
 
@@ -32,7 +31,6 @@ const StudentDash = () => {
         setAttendance(res.data);
       } catch (err) {
         console.log("Using Demo Data");
-        // Fallback Demo Data
         setAttendance([
           { date: '2025-12-01', subject: 'Computer Networks', status: 'Present' },
           { date: '2025-12-02', subject: 'Database Systems', status: 'Absent' },
@@ -50,6 +48,20 @@ const StudentDash = () => {
     };
     loadData();
   }, []);
+
+  // 💳 MOCK PAYMENT HANDLER
+  const handleMockPayment = () => {
+    const confirm = window.confirm("Proceed to Secure Payment Gateway for ₹50,000?");
+    if(confirm) {
+      setLoadingPay(true);
+      // Simulate network delay
+      setTimeout(() => {
+        setFees(prev => ({ ...prev, status: 'Paid' }));
+        setLoadingPay(false);
+        alert("✅ Payment Successful! Transaction ID: TXN_99887766");
+      }, 2000);
+    }
+  };
 
   // 📊 Calculate Stats
   const totalClasses = attendance.length;
@@ -203,8 +215,12 @@ const StudentDash = () => {
                  </div>
                </div>
 
-               {fees.status === 'Pending' && (
-                 <button style={styles.payBtn} onClick={() => alert("Redirecting to Payment Gateway...")}>Pay Now 💳</button>
+               {fees.status === 'Pending' ? (
+                 <button style={styles.payBtn} onClick={handleMockPayment} disabled={loadingPay}>
+                   {loadingPay ? "Processing Secure Payment..." : "Pay Now 💳"}
+                 </button>
+               ) : (
+                 <button style={styles.paidBtn} disabled>✅ Payment Completed</button>
                )}
             </div>
           )}
@@ -284,7 +300,8 @@ const styles = {
   dueStamp: { border: '2px solid #e74c3c', color: '#e74c3c', padding: '10px 20px', borderRadius: '8px', fontWeight: '900', letterSpacing: '2px', transform: 'rotate(-5deg)' },
   feeDetails: { display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '30px' },
   feeRow: { display: 'flex', justifyContent: 'space-between', fontSize: '16px', color: '#555' },
-  payBtn: { width: '100%', padding: '15px', background: '#2c3e50', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }
+  payBtn: { width: '100%', padding: '15px', background: '#2c3e50', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', transition: '0.2s' },
+  paidBtn: { width: '100%', padding: '15px', background: '#27ae60', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '16px', fontWeight: 'bold', cursor: 'default' }
 };
 
 export default StudentDash;
