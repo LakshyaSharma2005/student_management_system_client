@@ -9,24 +9,13 @@ const Login = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // 🗑️ Removed unused 'focusedInput' state here!
+
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
 
-  // 🔒 HARDCODED BACKEND URL (Ensures mobile works even if env vars fail)
+  // 🔒 HARDCODED BACKEND URL
   const SERVER_URL = "https://student-management-system-server-vygt.onrender.com";
-
-  const handleLoginSuccess = (data) => {
-    // 1. Save Token & User
-    login(data.user);
-    localStorage.setItem('token', data.token);
-
-    // 2. Redirect based on Role
-    const role = data.user.role;
-    if (role === 'Admin') navigate('/admin-dash');
-    else if (role === 'Teacher') navigate('/teacher-dash');
-    else if (role === 'Student') navigate('/student-dash');
-    else setError(`Unknown Role: ${role}`);
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -34,157 +23,180 @@ const Login = () => {
     setLoading(true);
 
     try {
-      // Use the hardcoded URL to be 100% sure
-      const res = await axios.post(`${SERVER_URL}/api/auth/login`, { 
-        email, 
-        password 
-      });
+      const res = await axios.post(`${SERVER_URL}/api/auth/login`, { email, password });
 
       if (res.data.token && res.data.user) {
-        handleLoginSuccess(res.data);
-      } else {
-        setError("Login succeeded but server sent no data.");
-      }
+        login(res.data.user);
+        localStorage.setItem('token', res.data.token);
 
+        const role = res.data.user.role;
+        if (role === 'Admin') navigate('/admin-dash');
+        else if (role === 'Teacher') navigate('/teacher-dash');
+        else if (role === 'Student') navigate('/student-dash');
+      } 
     } catch (err) {
-      console.error("Login Error:", err);
       setError(err.response?.data?.message || 'Invalid Credentials');
     }
     setLoading(false);
   };
 
-  // 🧪 DEBUG FUNCTION FOR PHONE
-  const magicMobileLogin = async () => {
-    try {
-      alert("⏳ Attempting Magic Login...");
-      const res = await axios.post(`${SERVER_URL}/api/auth/login`, {
-        email: "admin1@gmail.com",   // The account we KNOW works
-        password: "admin1234"        // The password we KNOW works
-      });
-      alert("✅ SUCCESS! Redirecting...");
-      handleLoginSuccess(res.data);
-    } catch (err) {
-      alert("❌ FAILED: " + (err.response?.data?.message || err.message));
-    }
-  };
-
   return (
-    <div style={styles.container}>
-      {/* Background decoration circles */}
-      <div style={styles.circle1}></div>
-      <div style={styles.circle2}></div>
+    <div style={styles.page}>
+      {/* 🌌 Animated Background */}
+      <style>{`
+        @keyframes gradientMove {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+        @keyframes float {
+          0% { transform: translateY(0px); }
+          50% { transform: translateY(-10px); }
+          100% { transform: translateY(0px); }
+        }
+        .input-group:focus-within label,
+        .input-group input:not(:placeholder-shown) + label {
+          transform: translateY(-25px) scale(0.85);
+          color: #4facfe;
+        }
+      `}</style>
 
-      <div style={styles.card}>
+      <div style={styles.glassCard}>
+        {/* Header Section */}
         <div style={styles.header}>
-          <h1 style={styles.title}>Welcome Back</h1>
-          <p style={styles.subtitle}>Enter your credentials to access the portal</p>
+          <div style={styles.logoCircle}>🎓</div>
+          <h1 style={styles.title}>StudentOS</h1>
+          <p style={styles.subtitle}>Welcome back, please login.</p>
         </div>
 
-        {/* 🧪 MAGIC DEBUG BUTTON (Remove this later) */}
-        <button 
-          type="button" 
-          onClick={magicMobileLogin} 
-          style={styles.magicBtn}
-        >
-          📱 Tap Here to Fix Mobile Login
-        </button>
-
-        {error && <div style={styles.errorMsg}>⚠️ {error}</div>}
+        {error && <div style={styles.errorBanner}>⚠️ {error}</div>}
 
         <form onSubmit={handleSubmit} style={styles.form}>
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Email Address</label>
+          
+          {/* Email Field */}
+          <div style={styles.inputGroup} className="input-group">
             <input 
               type="email" 
-              placeholder="name@college.edu" 
               value={email}
               onChange={(e) => setEmail(e.target.value)} 
               style={styles.input} 
+              placeholder=" "
               required 
             />
+            <label style={styles.label}>Email Address</label>
           </div>
 
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Password</label>
+          {/* Password Field */}
+          <div style={styles.inputGroup} className="input-group">
             <input 
               type="password" 
-              placeholder="••••••••" 
               value={password}
               onChange={(e) => setPassword(e.target.value)} 
               style={styles.input} 
+              placeholder=" "
               required 
             />
+            <label style={styles.label}>Password</label>
           </div>
 
-          <button type="submit" disabled={loading} style={styles.button}>
-            {loading ? 'Authenticating...' : 'Sign In'}
+          <button 
+            type="submit" 
+            disabled={loading} 
+            style={loading ? styles.buttonLoading : styles.button}
+            onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+            onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+          >
+            {loading ? <span style={styles.loader}></span> : 'Access Portal →'}
           </button>
         </form>
 
-        <div style={styles.footer}>
-          <p>Forgot password? Contact Admin.</p>
-        </div>
+        <p style={styles.footer}>
+          Forgot Password? <span style={styles.link}>Contact Admin</span>
+        </p>
       </div>
     </div>
   );
 };
 
-// 💅 MODERN UI STYLES (Glassmorphism & Clean)
+/* 🎨 THE STYLES */
 const styles = {
-  container: {
-    display: 'flex', justifyContent: 'center', alignItems: 'center', 
-    height: '100vh', background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
-    position: 'relative', overflow: 'hidden', fontFamily: "'Inter', sans-serif"
+  page: {
+    height: '100vh',
+    width: '100%',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    background: 'linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab)',
+    backgroundSize: '400% 400%',
+    animation: 'gradientMove 15s ease infinite',
+    fontFamily: "'Segoe UI', sans-serif",
   },
-  // Decorative Background Circles
-  circle1: { position: 'absolute', top: '-10%', right: '-5%', width: '300px', height: '300px', background: 'rgba(0, 123, 255, 0.15)', borderRadius: '50%', zIndex: 0 },
-  circle2: { position: 'absolute', bottom: '-10%', left: '-10%', width: '400px', height: '400px', background: 'rgba(108, 92, 231, 0.1)', borderRadius: '50%', zIndex: 0 },
-
-  card: {
-    position: 'relative', zIndex: 10,
-    background: 'rgba(255, 255, 255, 0.95)',
-    backdropFilter: 'blur(10px)',
-    padding: '40px', borderRadius: '20px',
-    boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
-    width: '100%', maxWidth: '400px',
-    textAlign: 'center'
+  glassCard: {
+    background: 'rgba(255, 255, 255, 0.9)',
+    backdropFilter: 'blur(20px)',
+    WebkitBackdropFilter: 'blur(20px)',
+    borderRadius: '24px',
+    padding: '50px 40px',
+    width: '100%',
+    maxWidth: '420px',
+    boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37)',
+    border: '1px solid rgba(255, 255, 255, 0.18)',
+    animation: 'float 6s ease-in-out infinite',
   },
-  header: { marginBottom: '30px' },
-  title: { margin: 0, color: '#1a1a1a', fontSize: '28px', fontWeight: '800' },
-  subtitle: { margin: '10px 0 0', color: '#666', fontSize: '14px' },
-
-  magicBtn: {
-    background: '#ff4757', color: '#fff', border: 'none',
-    width: '100%', padding: '12px', borderRadius: '8px',
-    fontWeight: 'bold', cursor: 'pointer', marginBottom: '20px',
-    boxShadow: '0 4px 10px rgba(255, 71, 87, 0.3)',
-    animation: 'pulse 2s infinite'
+  header: { textAlign: 'center', marginBottom: '40px' },
+  logoCircle: {
+    width: '60px', height: '60px', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+    fontSize: '30px', margin: '0 auto 15px', color: 'white', boxShadow: '0 4px 15px rgba(118, 75, 162, 0.4)'
+  },
+  title: { margin: '0', color: '#333', fontSize: '28px', fontWeight: '800', letterSpacing: '-0.5px' },
+  subtitle: { margin: '8px 0 0', color: '#666', fontSize: '15px' },
+  
+  errorBanner: {
+    background: '#fee2e2', color: '#991b1b', padding: '12px', borderRadius: '12px',
+    fontSize: '14px', fontWeight: '600', marginBottom: '20px', textAlign: 'center',
+    border: '1px solid #fecaca'
   },
   
-  errorMsg: {
-    background: '#ffebee', color: '#c62828', padding: '12px', 
-    borderRadius: '8px', marginBottom: '20px', fontSize: '13px', 
-    fontWeight: '600', border: '1px solid #ffcdd2'
-  },
+  form: { display: 'flex', flexDirection: 'column', gap: '25px' },
   
-  form: { display: 'flex', flexDirection: 'column', gap: '20px' },
-  inputGroup: { textAlign: 'left' },
-  label: { display: 'block', marginBottom: '8px', color: '#444', fontSize: '13px', fontWeight: '600' },
+  inputGroup: { position: 'relative' },
   input: {
-    width: '100%', padding: '14px', borderRadius: '10px',
-    border: '1px solid #e1e1e1', background: '#f9f9f9',
-    fontSize: '15px', transition: 'all 0.3s',
-    outline: 'none', boxSizing: 'border-box'
+    width: '100%', padding: '16px 16px', borderRadius: '12px',
+    border: '2px solid #e2e8f0', background: 'transparent',
+    fontSize: '16px', color: '#1e293b', outline: 'none',
+    transition: 'border-color 0.3s', boxSizing: 'border-box',
+    fontWeight: '500'
+  },
+  label: {
+    position: 'absolute', left: '16px', top: '16px',
+    color: '#94a3b8', fontSize: '16px', pointerEvents: 'none',
+    transition: '0.2s ease all', background: 'rgba(255,255,255,0.9)', padding: '0 4px'
   },
   
   button: {
-    width: '100%', padding: '16px', background: 'linear-gradient(to right, #2563eb, #3b82f6)',
-    color: '#fff', border: 'none', borderRadius: '12px',
-    cursor: 'pointer', fontSize: '16px', fontWeight: 'bold',
-    boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)',
-    transition: 'transform 0.2s'
+    width: '100%', padding: '18px',
+    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    color: 'white', border: 'none', borderRadius: '14px',
+    fontSize: '16px', fontWeight: 'bold', cursor: 'pointer',
+    transition: 'transform 0.2s, box-shadow 0.2s',
+    boxShadow: '0 10px 20px rgba(118, 75, 162, 0.3)',
+    marginTop: '10px'
   },
-  footer: { marginTop: '25px', fontSize: '12px', color: '#888' }
+  buttonLoading: {
+    width: '100%', padding: '18px', background: '#ccc',
+    color: '#666', border: 'none', borderRadius: '14px',
+    fontSize: '16px', fontWeight: 'bold', cursor: 'not-allowed', marginTop: '10px'
+  },
+  
+  footer: { textAlign: 'center', marginTop: '30px', fontSize: '14px', color: '#64748b' },
+  link: { color: '#764ba2', fontWeight: '700', cursor: 'pointer' },
+  
+  loader: {
+    display: 'inline-block', width: '20px', height: '20px',
+    border: '3px solid rgba(255,255,255,0.3)', borderRadius: '50%',
+    borderTopColor: '#fff', animation: 'spin 1s ease-in-out infinite'
+  }
 };
 
 export default Login;
