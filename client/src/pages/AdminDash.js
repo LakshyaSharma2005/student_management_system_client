@@ -98,12 +98,27 @@ const AdminDash = () => {
   };
 
   const handleDelete = async (id, type) => {
-    if(!window.confirm("Are you sure?")) return;
+    if(!window.confirm("Are you sure you want to delete this user?")) return;
 
-    // Optimistic UI Update
-    if(type === 'students') setStudents(students.filter(s => s._id !== id));
-    if(type === 'teachers') setTeachers(teachers.filter(t => t._id !== id));
-    if(type === 'notices') setNotices(notices.filter(n => n.id !== id));
+    try {
+      const token = localStorage.getItem('token');
+      
+      // 1. Call Backend to Delete
+      await axios.delete(`${SERVER_URL}/api/admin/delete/${id}`, {
+        headers: { Authorization: token }
+      });
+
+      // 2. Update UI (Remove from list instantly)
+      if(type === 'students') setStudents(students.filter(s => s._id !== id));
+      if(type === 'teachers') setTeachers(teachers.filter(t => t._id !== id));
+      if(type === 'notices') setNotices(notices.filter(n => n.id !== id));
+
+      alert("🗑️ User Deleted Successfully");
+
+    } catch (err) {
+      console.error("Delete Error:", err);
+      alert("❌ Failed to delete user: " + (err.response?.data?.message || err.message));
+    }
   };
 
   // 🔍 Filter Logic
