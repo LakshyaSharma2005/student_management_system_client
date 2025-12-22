@@ -23,7 +23,6 @@ const AdminDash = () => {
   const [formData, setFormData] = useState({ name: '', email: '', password: '', course: '', subject: '', fees: 'Pending' });
 
   // 🔒 REAL BACKEND URL
-  // We use the direct Render URL to ensure connection works perfectly
   const SERVER_URL = "https://student-management-system-server-vygt.onrender.com";
 
   // 🔄 Initial Load
@@ -72,13 +71,13 @@ const AdminDash = () => {
       };
 
       // 2. Send to Backend
-      // This actually creates the user in MongoDB!
       const res = await axios.post(`${SERVER_URL}/api/auth/register`, payload, {
         headers: { Authorization: token }
       });
 
-      // 3. Update UI on Success
-      if (res.data.success) {
+      // 🛠️ FIX: Check for 'success' boolean OR status code 201 (Created)
+      // This handles both old and new backend response formats
+      if (res.data.success || res.status === 201) {
         alert(`✅ ${activeTab === 'students' ? 'Student' : 'Teacher'} Added Successfully!`);
         
         // Refresh the list immediately from the database
@@ -87,11 +86,13 @@ const AdminDash = () => {
         // Clear Form
         setFormData({ name: '', email: '', password: '', course: '', subject: '', fees: 'Pending' });
       } else {
-        alert("⚠️ Registration Failed: " + res.data.message);
+        // Fallback error if success is false
+        alert("⚠️ Registration Failed: " + (res.data.message || "Unknown Error"));
       }
 
     } catch (err) {
       console.error("Registration Error:", err);
+      // specific error message from backend or generic network error
       alert("❌ Failed to add user: " + (err.response?.data?.message || err.message));
     }
     
@@ -101,8 +102,7 @@ const AdminDash = () => {
   const handleDelete = async (id, type) => {
     if(!window.confirm("Are you sure?")) return;
 
-    // For now, we update the UI optimistically. 
-    // You can add a DELETE endpoint call here later.
+    // Optimistic UI Update
     if(type === 'students') setStudents(students.filter(s => s._id !== id));
     if(type === 'teachers') setTeachers(teachers.filter(t => t._id !== id));
     if(type === 'notices') setNotices(notices.filter(n => n.id !== id));
