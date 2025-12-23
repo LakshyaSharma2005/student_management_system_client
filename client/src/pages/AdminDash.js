@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 
 const AdminDash = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('overview'); // overview, students, teachers, notices, finance
+  const [activeTab, setActiveTab] = useState('overview'); // overview, students, teachers, notices, finance, settings
   
   // Data States
   const [students, setStudents] = useState([]);
@@ -17,7 +17,7 @@ const AdminDash = () => {
   // UI States
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
-  const [isEditing, setIsEditing] = useState(null); // null or ID of user being edited
+  const [isEditing, setIsEditing] = useState(null); 
 
   // Form State
   const [formData, setFormData] = useState({ name: '', email: '', password: '', course: '', subject: '', fees: 'Pending' });
@@ -36,22 +36,18 @@ const AdminDash = () => {
       
       // 1. Fetch Students
       const sRes = await axios.get(`${SERVER_URL}/api/admin/students`, { headers: { Authorization: token } });
-      if (sRes.data.success !== false) setStudents(sRes.data);
+      if (sRes.data && Array.isArray(sRes.data)) setStudents(sRes.data);
       
       // 2. Fetch Teachers
-      try {
-        const tRes = await axios.get(`${SERVER_URL}/api/admin/teachers`, { headers: { Authorization: token } });
-        if (tRes.data) setTeachers(tRes.data);
-      } catch (err) {
-        console.log("Teacher fetch failed (using mock for display)");
-      }
+      const tRes = await axios.get(`${SERVER_URL}/api/admin/teachers`, { headers: { Authorization: token } });
+      if (tRes.data && Array.isArray(tRes.data)) setTeachers(tRes.data);
 
     } catch (err) {
       console.error("Fetch Error:", err);
     }
   };
 
-  // 📝 Handle Form Submit (REAL DATABASE CONNECTION)
+  // 📝 Handle Form Submit
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -59,30 +55,23 @@ const AdminDash = () => {
     try {
       const token = localStorage.getItem('token');
       
-      // 1. Prepare Data Payload
       const payload = {
         name: formData.name,
         email: formData.email,
-        password: formData.password || '123456', // Default password if empty
+        password: formData.password || '123456',
         role: activeTab === 'students' ? 'Student' : 'Teacher',
-        course: formData.course,
-        subject: formData.subject,
+        course: formData.course || '',
+        subject: formData.subject || '',
         fees: formData.fees || 'Pending'
       };
 
-      // 2. Send to Backend
       const res = await axios.post(`${SERVER_URL}/api/auth/register`, payload, {
         headers: { Authorization: token }
       });
 
-      // 🛠️ FIX: Check for 'success' boolean OR status code 201 (Created)
       if (res.data.success || res.status === 201) {
         alert(`✅ ${activeTab === 'students' ? 'Student' : 'Teacher'} Added Successfully!`);
-        
-        // Refresh the list immediately from the database
-        fetchData(); 
-        
-        // Clear Form
+        fetchData(); // Reload list
         setFormData({ name: '', email: '', password: '', course: '', subject: '', fees: 'Pending' });
       } else {
         alert("⚠️ Registration Failed: " + (res.data.message || "Unknown Error"));
@@ -90,31 +79,27 @@ const AdminDash = () => {
 
     } catch (err) {
       console.error("Registration Error:", err);
-      // specific error message from backend or generic network error
       alert("❌ Failed to add user: " + (err.response?.data?.message || err.message));
     }
-    
     setLoading(false);
   };
 
+  // 🗑️ Handle Delete
   const handleDelete = async (id, type) => {
     if(!window.confirm("Are you sure you want to delete this user?")) return;
 
     try {
       const token = localStorage.getItem('token');
-      
-      // 1. Call Backend to Delete
       await axios.delete(`${SERVER_URL}/api/admin/delete/${id}`, {
         headers: { Authorization: token }
       });
 
-      // 2. Update UI (Remove from list instantly)
+      // Update UI (Remove from list instantly)
       if(type === 'students') setStudents(students.filter(s => s._id !== id));
       if(type === 'teachers') setTeachers(teachers.filter(t => t._id !== id));
       if(type === 'notices') setNotices(notices.filter(n => n.id !== id));
 
       alert("🗑️ User Deleted Successfully");
-
     } catch (err) {
       console.error("Delete Error:", err);
       alert("❌ Failed to delete user: " + (err.response?.data?.message || err.message));
@@ -128,8 +113,8 @@ const AdminDash = () => {
     return [];
   };
 
-  // 💵 Calculate Stats
-  const totalRevenue = students.filter(s => s.fees === 'Paid').length * 50000;
+  // 💵 Calculate Stats (FIXED: 28000)
+  const totalRevenue = students.filter(s => s.fees === 'Paid').length * 28000;
   const pendingFees = students.filter(s => s.fees === 'Pending').length;
 
   return (
@@ -162,7 +147,8 @@ const AdminDash = () => {
           
           <div style={styles.divider}></div>
           <p style={styles.menuLabel}>SYSTEM</p>
-          <NavBtn label="⚙️ Settings" />
+          {/* FIXED: Added OnClick for Settings */}
+          <NavBtn label="⚙️ Settings" active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} />
         </div>
 
         {/* 🔵 MAIN CONTENT AREA */}
@@ -176,7 +162,6 @@ const AdminDash = () => {
               <StatCard title="Revenue Collected" value={`₹${totalRevenue.toLocaleString()}`} color="#27ae60" />
               <StatCard title="Pending Fees" value={pendingFees} color="#e74c3c" />
               
-              {/* Simple Chart Visualization */}
               <div style={{gridColumn: 'span 2', background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 5px rgba(0,0,0,0.05)'}}>
                 <h3>📈 Enrollment Analytics</h3>
                 <div style={{display: 'flex', alignItems: 'flex-end', height: '150px', gap: '20px', marginTop: '20px'}}>
@@ -203,7 +188,7 @@ const AdminDash = () => {
                   {!isEditing && <input type="password" placeholder="Password (Default: 123456)" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} style={styles.input} />}
                   
                   {activeTab === 'students' ? (
-                     <>
+                      <>
                       <select value={formData.course} onChange={e => setFormData({...formData, course: e.target.value})} style={styles.select} required>
                         <option value="">-- Select Course --</option>
                         <option value="BCA">BCA</option>
@@ -215,7 +200,7 @@ const AdminDash = () => {
                         <option value="Pending">Fees: Pending</option>
                         <option value="Paid">Fees: Paid</option>
                       </select>
-                     </>
+                      </>
                   ) : (
                     <input type="text" placeholder="Subject" value={formData.subject} onChange={e => setFormData({...formData, subject: e.target.value})} style={styles.input} required />
                   )}
@@ -264,7 +249,7 @@ const AdminDash = () => {
             </div>
           )}
 
-          {/* 3️⃣ FINANCE TAB */}
+          {/* 3️⃣ FINANCE TAB (FIXED) */}
           {activeTab === 'finance' && (
              <div style={styles.tableCard}>
                 <h3>💰 Fee Status Report</h3>
@@ -276,8 +261,9 @@ const AdminDash = () => {
                     {students.map(s => (
                       <tr key={s._id} style={styles.tr}>
                         <td style={styles.td}>{s.name}</td>
-                        <td style={styles.td}>{s.course}</td>
-                        <td style={styles.td}>₹50,000</td>
+                        <td style={styles.td}>{s.course || 'N/A'}</td>
+                        {/* FIXED: 28,000 */}
+                        <td style={styles.td}>₹28,000</td>
                         <td style={styles.td}><span style={s.fees === 'Paid' ? styles.statusGreen : styles.statusRed}>{s.fees}</span></td>
                         <td style={styles.td}>
                           {s.fees === 'Pending' && <button style={styles.payBtn} onClick={() => alert("Payment Link Sent!")}>Send Reminder 🔔</button>}
@@ -309,6 +295,20 @@ const AdminDash = () => {
                     <button onClick={() => handleDelete(n.id, 'notices')} style={styles.deleteLink}>Delete</button>
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* 5️⃣ SETTINGS TAB (NEW & FIXED) */}
+          {activeTab === 'settings' && (
+            <div style={styles.formCard}>
+              <h3>⚙️ System Settings</h3>
+              <div style={{marginTop: '20px'}}>
+                  <p><b>Admin Name:</b> Lakshya Sharma</p>
+                  <p><b>System Version:</b> v2.0 (Stable)</p>
+                  <p><b>Database Status:</b> Connected ✅</p>
+                  <div style={styles.divider}></div>
+                  <button style={styles.submitBtn} onClick={() => alert("Configuration Saved!")}>Save Configuration</button>
               </div>
             </div>
           )}

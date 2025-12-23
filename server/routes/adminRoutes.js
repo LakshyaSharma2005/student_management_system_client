@@ -1,12 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const User = require('../models/User'); // Import the User model
+const User = require('../models/User');
 
 // 1. GET ALL STUDENTS
 router.get('/students', async (req, res) => {
   try {
-    // Fetch all users with role 'Student'
-    // We do NOT use .select() so it returns ALL fields (including course & fees)
     const students = await User.find({ role: 'Student' }).sort({ createdAt: -1 });
     res.json(students);
   } catch (err) {
@@ -24,7 +22,7 @@ router.get('/teachers', async (req, res) => {
   }
 });
 
-// 3. DELETE USER
+// 3. DELETE USER (Fixes the persistence issue)
 router.delete('/delete/:id', async (req, res) => {
   try {
     const id = req.params.id;

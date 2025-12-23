@@ -22,18 +22,17 @@ const UserSchema = new mongoose.Schema({
     enum: ['Admin', 'Teacher', 'Student'], 
     required: true 
   },
-  // 🆕 NEW FIELDS ADDED HERE
   course: { 
     type: String, 
-    default: '' 
+    default: '' // Important for Students
   },
   subject: { 
     type: String, 
-    default: '' // For Teachers
+    default: '' // Important for Teachers
   },
   fees: { 
     type: String, 
-    default: 'Pending' // For Students
+    default: 'Pending' // Important for Finance
   }
 }, { timestamps: true });
 
