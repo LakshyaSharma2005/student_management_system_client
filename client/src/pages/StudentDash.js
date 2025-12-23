@@ -4,33 +4,65 @@ import { useNavigate } from 'react-router-dom';
 
 const StudentDash = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('fees'); // Default to fees to show the feature
+  const [activeTab, setActiveTab] = useState('fees'); 
   
-  // Data States
-  const [student, setStudent] = useState({ name: 'Student', email: '', course: 'B.Tech', roll: 'Unknown' });
+  // 🔒 REAL BACKEND URL
+  const SERVER_URL = "https://student-management-system-server-vygt.onrender.com";
+
+  // Data States (Initialized with safe defaults to prevent crashes)
+  const [student, setStudent] = useState({ 
+    name: 'Student', 
+    email: '', 
+    course: 'BCA', 
+    roll: 'Unknown',
+    fees: 'Pending' // Default
+  });
+  
   const [attendance, setAttendance] = useState([]);
   const [marks, setMarks] = useState([]);
-  const [fees, setFees] = useState({ status: 'Pending', amount: 50000, due: '2025-01-15' });
+  
+  // Fee Logic (Updated to ₹28,000)
+  const [feeDetails, setFeeDetails] = useState({ 
+    status: 'Pending', 
+    amount: 28000, 
+    due: '2025-01-15' 
+  });
+  
   const [loadingPay, setLoadingPay] = useState(false);
 
   // 🔄 Initial Load
   useEffect(() => {
     const loadData = async () => {
-      // 1. Load User Info
-      const user = JSON.parse(localStorage.getItem('user'));
-      if (user) {
-        setStudent(prev => ({ ...prev, name: user.name, email: user.email, roll: 'CS-2025-001' }));
+      // 1. Load User Info from LocalStorage (This comes from Login)
+      const userStr = localStorage.getItem('user');
+      const token = localStorage.getItem('token');
+
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        setStudent(prev => ({ 
+          ...prev, 
+          name: user.name, 
+          email: user.email, 
+          course: user.course || 'BCA', // Fallback
+          fees: user.fees || 'Pending'  // vital: sync with admin
+        }));
+
+        // Sync Fee Card Status
+        setFeeDetails(prev => ({ ...prev, status: user.fees || 'Pending' }));
+      } else {
+        navigate('/'); // Safety redirect
       }
 
-      // 2. Fetch or Mock Data
+      // 2. Fetch Attendance (Mock data fallback if server has no records yet)
       try {
-        const token = localStorage.getItem('token');
-        const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/student/attendance`, {
-          headers: { Authorization: token }
-        });
-        setAttendance(res.data);
+        if(token) {
+            // Optional: You can fetch real attendance here if you add that route later
+            // const res = await axios.get(`${SERVER_URL}/api/student/attendance`, { headers: { Authorization: token } });
+            // setAttendance(res.data);
+            throw new Error("Using Mock Data"); // Force mock for now
+        }
       } catch (err) {
-        console.log("Using Demo Data");
+        // Mock Data for Demo
         setAttendance([
           { date: '2025-12-01', subject: 'Computer Networks', status: 'Present' },
           { date: '2025-12-02', subject: 'Database Systems', status: 'Absent' },
@@ -47,18 +79,19 @@ const StudentDash = () => {
       }
     };
     loadData();
-  }, []);
+  }, [navigate]);
 
   // 💳 MOCK PAYMENT HANDLER
   const handleMockPayment = () => {
-    const confirm = window.confirm("Proceed to Secure Payment Gateway for ₹50,000?");
+    const confirm = window.confirm(`Proceed to Secure Payment Gateway for ₹${feeDetails.amount.toLocaleString()}?`);
     if(confirm) {
       setLoadingPay(true);
       // Simulate network delay
       setTimeout(() => {
-        setFees(prev => ({ ...prev, status: 'Paid' }));
+        setFeeDetails(prev => ({ ...prev, status: 'Paid' }));
+        setStudent(prev => ({ ...prev, fees: 'Paid' })); // Update local state
         setLoadingPay(false);
-        alert("✅ Payment Successful! Transaction ID: TXN_99887766");
+        alert("✅ Payment Successful! Receipt sent to email.");
       }, 2000);
     }
   };
@@ -118,7 +151,8 @@ const StudentDash = () => {
               <div style={styles.overviewGrid}>
                 <StatCard title="Overall Attendance" value={`${percentage}%`} color={percentage > 75 ? "#2ecc71" : "#e74c3c"} />
                 <StatCard title="CGPA" value="9.2" color="#f1c40f" />
-                <StatCard title="Fee Status" value={fees.status} color={fees.status === 'Paid' ? "#2ecc71" : "#e74c3c"} />
+                {/* Dynamic Status Color */}
+                <StatCard title="Fee Status" value={student.fees} color={student.fees === 'Paid' ? "#2ecc71" : "#e74c3c"} />
               </div>
 
               {/* Recent Activity */}
@@ -128,11 +162,11 @@ const StudentDash = () => {
                   {attendance.slice(0, 3).map((r, i) => (
                     <div key={i} style={styles.activityItem}>
                       <div style={{display:'flex', gap:'15px', alignItems:'center'}}>
-                         <div style={styles.dateBadge}>{r.date.split('-')[2]}<br/><small>DEC</small></div>
-                         <div>
+                          <div style={styles.dateBadge}>{r.date.split('-')[2]}<br/><small>DEC</small></div>
+                          <div>
                            <strong>{r.subject}</strong>
                            <p style={{margin:0, fontSize:'12px', color:'#666'}}>Lecture Hall A</p>
-                         </div>
+                          </div>
                       </div>
                       <span style={r.status === 'Present' ? styles.statusGreen : styles.statusRed}>{r.status}</span>
                     </div>
@@ -193,29 +227,30 @@ const StudentDash = () => {
             </div>
           )}
 
-          {/* 4️⃣ FEES TAB */}
+          {/* 4️⃣ FEES TAB (Updated to ₹28,000) */}
           {activeTab === 'fees' && (
             <div style={styles.feeCard}>
                <div style={styles.feeHeader}>
                  <div>
                    <h3>💰 Semester Fees</h3>
-                   <p>Due Date: {fees.due}</p>
+                   <p>Due Date: {feeDetails.due}</p>
                  </div>
-                 <div style={fees.status === 'Paid' ? styles.paidStamp : styles.dueStamp}>
-                   {fees.status.toUpperCase()}
+                 {/* Dynamic Stamp */}
+                 <div style={feeDetails.status === 'Paid' ? styles.paidStamp : styles.dueStamp}>
+                   {feeDetails.status.toUpperCase()}
                  </div>
                </div>
                
                <div style={styles.feeDetails}>
-                 <div style={styles.feeRow}><span>Tuition Fee</span><span>₹45,000</span></div>
+                 <div style={styles.feeRow}><span>Tuition Fee</span><span>₹25,000</span></div>
                  <div style={styles.feeRow}><span>Library Fee</span><span>₹2,000</span></div>
-                 <div style={styles.feeRow}><span>Lab Charges</span><span>₹3,000</span></div>
+                 <div style={styles.feeRow}><span>Lab Charges</span><span>₹1,000</span></div>
                  <div style={{...styles.feeRow, borderTop:'1px solid #ddd', paddingTop:'10px', fontWeight:'bold'}}>
-                   <span>Total Amount</span><span>₹{fees.amount.toLocaleString()}</span>
+                   <span>Total Amount</span><span>₹{feeDetails.amount.toLocaleString()}</span>
                  </div>
                </div>
 
-               {fees.status === 'Pending' ? (
+               {feeDetails.status === 'Pending' ? (
                  <button style={styles.payBtn} onClick={handleMockPayment} disabled={loadingPay}>
                    {loadingPay ? "Processing Secure Payment..." : "Pay Now 💳"}
                  </button>
