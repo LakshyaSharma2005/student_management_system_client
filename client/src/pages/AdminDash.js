@@ -45,12 +45,15 @@ const COURSE_OPTIONS = [
 const AdminDash = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("overview");
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+  // Responsive State
+  const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 1024);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
 
   const SERVER_URL =
     "https://student-management-system-server-vygt.onrender.com";
 
-  // --- STATES ---
+  // --- DATA STATES ---
   const [students, setStudents] = useState([]);
   const [teachers, setTeachers] = useState([]);
   const [notices, setNotices] = useState([
@@ -92,6 +95,18 @@ const AdminDash = () => {
     subject: "",
     fees: "Pending",
   });
+
+  // 🔄 HANDLE RESIZE
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth < 1024;
+      setIsMobile(mobile);
+      if (!mobile) setIsSidebarOpen(true);
+      else setIsSidebarOpen(false);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   // 🔄 FETCH DATA
   const fetchData = useCallback(async () => {
@@ -171,8 +186,7 @@ const AdminDash = () => {
   };
 
   const handleDelete = async (id, type) => {
-    if (!window.confirm("Confirm deletion? This action is irreversible."))
-      return;
+    if (!window.confirm("Confirm deletion?")) return;
     try {
       const token = localStorage.getItem("token");
       await axios.delete(`${SERVER_URL}/api/admin/delete/${id}`, {
@@ -202,99 +216,126 @@ const AdminDash = () => {
   return (
     <div style={styles.container}>
       {/* 🌑 SIDEBAR */}
-      <div
+      <aside
         style={{
           ...styles.sidebar,
-          width: isSidebarOpen ? "280px" : "0px",
-          padding: isSidebarOpen ? "24px" : "0px",
-          opacity: isSidebarOpen ? 1 : 0,
+          transform: isSidebarOpen ? "translateX(0)" : "translateX(-100%)",
         }}
       >
+        {/* Header */}
         <div style={styles.logoContainer}>
           <div style={styles.logoIcon}>⚡</div>
           <h2 style={styles.logoText}>
-            Admin <span style={{ color: "#3b82f6" }}>Panel</span>
+            Admin <span style={{ color: "#60a5fa" }}>Panel</span>
           </h2>
         </div>
 
-        {/* 📜 SCROLLABLE MENU SECTION (Fixes Button Cutoff) */}
+        {/* Menu (Scrollable) */}
         <div style={styles.scrollableMenu}>
           <div style={styles.menuGroup}>
             <p style={styles.menuLabel}>DASHBOARD</p>
             <NavBtn
-              icon="📊"
+              icon={<IconChart />}
               label="Overview"
               active={activeTab === "overview"}
-              onClick={() => setActiveTab("overview")}
+              onClick={() => {
+                setActiveTab("overview");
+                if (isMobile) setIsSidebarOpen(false);
+              }}
             />
             <NavBtn
-              icon="📢"
+              icon={<IconBell />}
               label="Announcements"
               active={activeTab === "notices"}
-              onClick={() => setActiveTab("notices")}
+              onClick={() => {
+                setActiveTab("notices");
+                if (isMobile) setIsSidebarOpen(false);
+              }}
             />
           </div>
 
           <div style={styles.menuGroup}>
             <p style={styles.menuLabel}>ACADEMIC</p>
             <NavBtn
-              icon="👨‍🎓"
+              icon={<IconUser />}
               label="Students"
               active={activeTab === "students"}
-              onClick={() => setActiveTab("students")}
+              onClick={() => {
+                setActiveTab("students");
+                if (isMobile) setIsSidebarOpen(false);
+              }}
             />
             <NavBtn
-              icon="👨‍🏫"
+              icon={<IconBook />}
               label="Faculty"
               active={activeTab === "teachers"}
-              onClick={() => setActiveTab("teachers")}
+              onClick={() => {
+                setActiveTab("teachers");
+                if (isMobile) setIsSidebarOpen(false);
+              }}
             />
             <NavBtn
-              icon="💳"
+              icon={<IconCash />}
               label="Finance"
               active={activeTab === "finance"}
-              onClick={() => setActiveTab("finance")}
+              onClick={() => {
+                setActiveTab("finance");
+                if (isMobile) setIsSidebarOpen(false);
+              }}
             />
           </div>
 
           <div style={styles.menuGroup}>
             <p style={styles.menuLabel}>ADMINISTRATION</p>
             <NavBtn
-              icon="⚙️"
+              icon={<IconSettings />}
               label="Settings"
               active={activeTab === "settings"}
-              onClick={() => setActiveTab("settings")}
+              onClick={() => {
+                setActiveTab("settings");
+                if (isMobile) setIsSidebarOpen(false);
+              }}
             />
           </div>
         </div>
 
-        {/* 🚪 FIXED BOTTOM BUTTON */}
-        <button
-          onClick={() => {
-            localStorage.removeItem("token");
-            navigate("/");
-          }}
-          style={styles.logoutBtn}
-        >
-          ↪ Sign Out
-        </button>
-      </div>
+        {/* Footer (Fixed) */}
+        <div style={styles.sidebarFooter}>
+          <button
+            onClick={() => {
+              localStorage.removeItem("token");
+              navigate("/");
+            }}
+            style={styles.logoutBtn}
+          >
+            <IconLogOut /> Sign Out
+          </button>
+        </div>
+      </aside>
+
+      {/* Overlay */}
+      {isMobile && isSidebarOpen && (
+        <div
+          style={styles.overlay}
+          onClick={() => setIsSidebarOpen(false)}
+        ></div>
+      )}
 
       {/* ⚪ MAIN CONTENT */}
-      <div
+      <main
         style={{
-          ...styles.content,
-          marginLeft: isSidebarOpen ? "280px" : "0px", // 🟢 Pushes Content Correctly
+          ...styles.main,
+          marginLeft: !isMobile && isSidebarOpen ? "260px" : "0",
         }}
       >
-        {/* TOP HEADER */}
-        <div style={styles.header}>
-          <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
+        {/* Header */}
+        <header style={styles.header}>
+          <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
             <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              style={styles.hamburgerBtn}
+              style={styles.hamburger}
             >
-              ☰
+              <IconMenu />
             </button>
             <h2 style={styles.pageTitle}>
               {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
@@ -303,295 +344,386 @@ const AdminDash = () => {
 
           <div style={styles.headerActions}>
             <div style={styles.searchBar}>
-              <span>🔍</span>
+              <IconSearch color="#94a3b8" />
               <input
-                placeholder="Search records..."
-                style={styles.headerSearch}
+                placeholder="Search..."
+                style={styles.searchInput}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <div style={styles.iconBtn}>🔔</div>
+            <button style={styles.iconBtn}>
+              <IconBell color="#64748b" />
+            </button>
             <div style={styles.profileBadge}>
               <div style={styles.avatar}>AD</div>
-              <div style={{ display: "flex", flexDirection: "column" }}>
-                <span style={styles.profileName}>Admin User</span>
-                <span style={styles.profileRole}>Super Admin</span>
-              </div>
+              {!isMobile && (
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  <span style={styles.profileName}>Admin User</span>
+                  <span style={styles.profileRole}>Super Admin</span>
+                </div>
+              )}
             </div>
           </div>
-        </div>
+        </header>
 
-        {/* 1️⃣ OVERVIEW TAB */}
-        {activeTab === "overview" && (
-          <div style={styles.fadeProps}>
-            <div style={styles.statGrid}>
-              <StatCard
-                title="Total Enrolled"
-                value={students.length}
-                icon="👥"
-                color="#3b82f6"
-                trend="+12% this week"
-              />
-              <StatCard
-                title="Active Faculty"
-                value={teachers.length}
-                icon="👨‍🏫"
-                color="#10b981"
-                trend="Stable"
-              />
-              <StatCard
-                title="Total Revenue"
-                value={`₹${(totalRevenue / 1000).toFixed(1)}k`}
-                icon="💰"
-                color="#8b5cf6"
-                trend="+5% vs last mo"
-              />
-              <StatCard
-                title="Pending Dues"
-                value={pendingFees}
-                icon="⚠️"
-                color="#ef4444"
-                trend="Action Required"
-              />
-            </div>
-
-            <div style={styles.splitGrid}>
-              <div style={styles.card}>
-                <h3 style={styles.cardTitle}>📈 Enrollment Trends</h3>
-                <div style={styles.chartContainer}>
-                  {[45, 72, 58, 90, 65, 80, 55].map((h, i) => (
-                    <div key={i} style={styles.barWrapper}>
-                      <div style={{ ...styles.bar, height: `${h}%` }}></div>
-                      <span style={styles.barLabel}>
-                        {["M", "T", "W", "T", "F", "S", "S"][i]}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+        {/* CONTENT BODY */}
+        <div style={styles.contentBody}>
+          {/* 1️⃣ OVERVIEW */}
+          {activeTab === "overview" && (
+            <div style={styles.fadeIn}>
+              <div style={styles.grid4}>
+                <StatCard
+                  label="Total Enrolled"
+                  value={students.length}
+                  change="+12% this week"
+                  icon={<IconUser />}
+                  color="blue"
+                />
+                <StatCard
+                  label="Active Faculty"
+                  value={teachers.length}
+                  change="Stable"
+                  icon={<IconBook />}
+                  color="emerald"
+                />
+                <StatCard
+                  label="Total Revenue"
+                  value={`₹${(totalRevenue / 1000).toFixed(1)}k`}
+                  change="+5% vs last mo"
+                  icon={<IconCash />}
+                  color="amber"
+                />
+                <StatCard
+                  label="Pending Dues"
+                  value={pendingFees}
+                  change="Action Required"
+                  icon={<IconAlert />}
+                  color="rose"
+                />
               </div>
 
-              <div style={styles.card}>
-                <h3 style={styles.cardTitle}>🕒 System Audit Log</h3>
-                <div style={styles.timeline}>
-                  <TimelineItem
-                    time="10:42 AM"
-                    title="New Student Registration"
-                    desc="Gaurav Gochar enrolled in BCA (DS)"
-                    color="#3b82f6"
-                  />
-                  <TimelineItem
-                    time="11:15 AM"
-                    title="Fee Payment Received"
-                    desc="₹28,000 processed via Gateway"
-                    color="#10b981"
-                  />
-                  <TimelineItem
-                    time="01:30 PM"
-                    title="System Backup"
-                    desc="Automated backup completed successfully"
-                    color="#64748b"
-                  />
-                  <TimelineItem
-                    time="03:45 PM"
-                    title="Notice Published"
-                    desc="'Winter Vacation' posted to portal"
-                    color="#f59e0b"
-                  />
+              <div style={styles.gridSplit}>
+                <div style={styles.card}>
+                  <div style={styles.cardHeader}>
+                    <IconChart color="#2563eb" />
+                    <h3 style={styles.cardTitle}>Enrollment Trends</h3>
+                  </div>
+                  <div style={styles.chartContainer}>
+                    {[45, 72, 58, 90, 65, 80, 55].map((h, i) => (
+                      <div key={i} style={styles.barWrapper}>
+                        <div style={{ ...styles.bar, height: `${h}%` }}></div>
+                        <span style={styles.barLabel}>
+                          {["M", "T", "W", "T", "F", "S", "S"][i]}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={styles.card}>
+                  <div style={styles.cardHeader}>
+                    <IconCalendar color="#2563eb" />
+                    <h3 style={styles.cardTitle}>Audit Log</h3>
+                  </div>
+                  <div style={styles.timeline}>
+                    <TimelineItem
+                      time="10:42 AM"
+                      title="New Student"
+                      desc="Gaurav Gochar enrolled"
+                      color="#3b82f6"
+                    />
+                    <TimelineItem
+                      time="11:15 AM"
+                      title="Fee Received"
+                      desc="₹28,000 processed"
+                      color="#10b981"
+                    />
+                    <TimelineItem
+                      time="01:30 PM"
+                      title="System Backup"
+                      desc="Auto-backup completed"
+                      color="#64748b"
+                    />
+                    <TimelineItem
+                      time="03:45 PM"
+                      title="Notice Posted"
+                      desc="Winter Vacation Update"
+                      color="#f59e0b"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* 2️⃣ STUDENTS & TEACHERS */}
-        {(activeTab === "students" || activeTab === "teachers") && (
-          <div
-            style={{
-              ...styles.fadeProps,
-              display: "flex",
-              gap: "20px",
-              alignItems: "start",
-              flexDirection: "column",
-            }}
-          >
-            <div style={styles.formCard}>
-              <h3 style={styles.cardTitle}>
-                {isEditing
-                  ? "✏️ Edit Record"
-                  : `➕ Add ${
-                      activeTab === "students" ? "Student" : "Faculty"
-                    }`}
-              </h3>
-              <form onSubmit={handleSubmit} style={styles.formHorizontal}>
-                <input
-                  style={styles.input}
-                  type="text"
-                  placeholder="Full Name"
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  required
-                />
-                <input
-                  style={styles.input}
-                  type="email"
-                  placeholder="Email"
-                  value={formData.email}
-                  onChange={(e) =>
-                    setFormData({ ...formData, email: e.target.value })
-                  }
-                  required
-                />
-                {!isEditing && (
-                  <input
-                    style={styles.input}
-                    type="password"
-                    placeholder="Password (Default: 123456)"
-                    value={formData.password}
-                    onChange={(e) =>
-                      setFormData({ ...formData, password: e.target.value })
-                    }
-                  />
-                )}
-
-                {activeTab === "students" ? (
-                  <>
-                    <select
-                      style={styles.select}
-                      value={formData.course}
-                      onChange={(e) =>
-                        setFormData({ ...formData, course: e.target.value })
-                      }
-                      required
-                    >
-                      <option value="">Select Specialization...</option>
-                      {COURSE_OPTIONS.map((c, i) => (
-                        <option key={i} value={c}>
-                          {c}
-                        </option>
-                      ))}
-                    </select>
-                    <select
-                      style={styles.select}
-                      value={formData.fees}
-                      onChange={(e) =>
-                        setFormData({ ...formData, fees: e.target.value })
-                      }
-                    >
-                      <option value="Pending">Fees: Pending</option>
-                      <option value="Paid">Fees: Paid</option>
-                    </select>
-                  </>
-                ) : (
+          {/* 2️⃣ STUDENTS & TEACHERS */}
+          {(activeTab === "students" || activeTab === "teachers") && (
+            <div style={styles.fadeIn}>
+              {/* Form Section */}
+              <div style={{ ...styles.card, marginBottom: "24px" }}>
+                <h3 style={{ ...styles.cardTitle, marginBottom: "20px" }}>
+                  {isEditing
+                    ? "✏️ Edit Record"
+                    : `➕ Add ${
+                        activeTab === "students" ? "Student" : "Faculty"
+                      }`}
+                </h3>
+                <form onSubmit={handleSubmit} style={styles.formGrid}>
                   <input
                     style={styles.input}
                     type="text"
-                    placeholder="Subject"
-                    value={formData.subject}
+                    placeholder="Full Name"
+                    value={formData.name}
                     onChange={(e) =>
-                      setFormData({ ...formData, subject: e.target.value })
+                      setFormData({ ...formData, name: e.target.value })
                     }
+                    required
                   />
-                )}
-
-                <div style={{ display: "flex", gap: "10px" }}>
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    style={styles.primaryBtn}
-                  >
-                    {loading ? "Processing..." : isEditing ? "Update" : "Save"}
-                  </button>
-                  {isEditing && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsEditing(null);
-                        setFormData({
-                          name: "",
-                          email: "",
-                          password: "",
-                          course: "",
-                          subject: "",
-                          fees: "Pending",
-                        });
-                      }}
-                      style={styles.secondaryBtn}
-                    >
-                      Cancel
-                    </button>
+                  <input
+                    style={styles.input}
+                    type="email"
+                    placeholder="Email Address"
+                    value={formData.email}
+                    onChange={(e) =>
+                      setFormData({ ...formData, email: e.target.value })
+                    }
+                    required
+                  />
+                  {!isEditing && (
+                    <input
+                      style={styles.input}
+                      type="password"
+                      placeholder="Password (Default: 123456)"
+                      value={formData.password}
+                      onChange={(e) =>
+                        setFormData({ ...formData, password: e.target.value })
+                      }
+                    />
                   )}
-                </div>
-              </form>
-            </div>
 
-            <div style={styles.tableCard}>
-              <div style={styles.tableHeader}>
-                <h3 style={styles.cardTitle}>Directory</h3>
-                <input
-                  style={styles.searchInput}
-                  type="text"
-                  placeholder="Search by name..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
+                  {activeTab === "students" ? (
+                    <>
+                      <select
+                        style={styles.select}
+                        value={formData.course}
+                        onChange={(e) =>
+                          setFormData({ ...formData, course: e.target.value })
+                        }
+                        required
+                      >
+                        <option value="">Select Specialization...</option>
+                        {COURSE_OPTIONS.map((c, i) => (
+                          <option key={i} value={c}>
+                            {c}
+                          </option>
+                        ))}
+                      </select>
+                      <select
+                        style={styles.select}
+                        value={formData.fees}
+                        onChange={(e) =>
+                          setFormData({ ...formData, fees: e.target.value })
+                        }
+                      >
+                        <option value="Pending">Fees: Pending</option>
+                        <option value="Paid">Fees: Paid</option>
+                      </select>
+                    </>
+                  ) : (
+                    <input
+                      style={styles.input}
+                      type="text"
+                      placeholder="Subject Specialization"
+                      value={formData.subject}
+                      onChange={(e) =>
+                        setFormData({ ...formData, subject: e.target.value })
+                      }
+                    />
+                  )}
+
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: "12px",
+                      gridColumn: "1 / -1",
+                    }}
+                  >
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      style={styles.primaryBtn}
+                    >
+                      {loading
+                        ? "Processing..."
+                        : isEditing
+                        ? "Update Record"
+                        : "Save Record"}
+                    </button>
+                    {isEditing && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsEditing(null);
+                          setFormData({
+                            name: "",
+                            email: "",
+                            password: "",
+                            course: "",
+                            subject: "",
+                            fees: "Pending",
+                          });
+                        }}
+                        style={styles.secondaryBtn}
+                      >
+                        Cancel
+                      </button>
+                    )}
+                  </div>
+                </form>
+              </div>
+
+              {/* Table Section */}
+              <div style={styles.card}>
+                <div style={styles.cardHeader}>
+                  <h3 style={styles.cardTitle}>Directory</h3>
+                </div>
+                <div style={styles.tableWrapper}>
+                  <table style={styles.table}>
+                    <thead>
+                      <tr>
+                        <th style={styles.th}>Name</th>
+                        <th style={styles.th}>Email</th>
+                        <th style={styles.th}>
+                          {activeTab === "students" ? "Course" : "Subject"}
+                        </th>
+                        {activeTab === "students" && (
+                          <th style={styles.th}>Fees</th>
+                        )}
+                        <th style={styles.th}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {getDataToDisplay().map((user) => (
+                        <tr key={user._id} style={styles.tr}>
+                          <td style={styles.td}>
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "10px",
+                              }}
+                            >
+                              <div style={styles.userAvatar}>
+                                {user.name.charAt(0)}
+                              </div>
+                              <span
+                                style={{ fontWeight: "600", color: "#0f172a" }}
+                              >
+                                {user.name}
+                              </span>
+                            </div>
+                          </td>
+                          <td style={styles.td}>{user.email}</td>
+                          <td style={styles.td}>
+                            <span style={styles.pillBlue}>
+                              {user.course || user.subject}
+                            </span>
+                          </td>
+                          {activeTab === "students" && (
+                            <td style={styles.td}>
+                              <span
+                                style={
+                                  user.fees === "Paid"
+                                    ? styles.pillGreen
+                                    : styles.pillRed
+                                }
+                              >
+                                {user.fees}
+                              </span>
+                            </td>
+                          )}
+                          <td style={styles.td}>
+                            <div style={{ display: "flex", gap: "8px" }}>
+                              <button
+                                onClick={() => handleEdit(user)}
+                                style={styles.iconAction}
+                              >
+                                <IconEdit />
+                              </button>
+                              <button
+                                onClick={() =>
+                                  handleDelete(user._id, activeTab)
+                                }
+                                style={{
+                                  ...styles.iconAction,
+                                  color: "#ef4444",
+                                }}
+                              >
+                                <IconTrash />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 3️⃣ FINANCE */}
+          {activeTab === "finance" && (
+            <div style={styles.card}>
+              <div style={styles.cardHeader}>
+                <h3 style={styles.cardTitle}>Financial Overview</h3>
               </div>
               <div style={styles.tableWrapper}>
                 <table style={styles.table}>
                   <thead>
-                    <tr style={styles.trHead}>
-                      <th>Name</th>
-                      <th>Email</th>
-                      <th>{activeTab === "students" ? "Course" : "Subject"}</th>
-                      {activeTab === "students" && <th>Fees</th>}
-                      <th>Actions</th>
+                    <tr>
+                      <th style={styles.th}>Student</th>
+                      <th style={styles.th}>Course</th>
+                      <th style={styles.th}>Dues</th>
+                      <th style={styles.th}>Status</th>
+                      <th style={styles.th}>Action</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {getDataToDisplay().map((user) => (
-                      <tr key={user._id} style={styles.tr}>
+                    {students.map((s) => (
+                      <tr key={s._id} style={styles.tr}>
                         <td style={styles.td}>
-                          <div style={styles.userCell}>
-                            <div style={styles.userAvatar}>
-                              {user.name.charAt(0)}
-                            </div>
-                            <span style={styles.userName}>{user.name}</span>
-                          </div>
+                          <b>{s.name}</b>
                         </td>
-                        <td style={styles.td}>{user.email}</td>
                         <td style={styles.td}>
-                          <span style={styles.badge}>
-                            {user.course || user.subject || "N/A"}
+                          <span style={styles.pillBlue}>{s.course}</span>
+                        </td>
+                        <td style={{ ...styles.td, fontWeight: "600" }}>
+                          ₹28,000
+                        </td>
+                        <td style={styles.td}>
+                          <span
+                            style={
+                              s.fees === "Paid"
+                                ? styles.pillGreen
+                                : styles.pillRed
+                            }
+                          >
+                            {s.fees}
                           </span>
                         </td>
-                        {activeTab === "students" && (
-                          <td style={styles.td}>
-                            <span
-                              style={
-                                user.fees === "Paid"
-                                  ? styles.statusSuccess
-                                  : styles.statusWarning
-                              }
-                            >
-                              {user.fees}
-                            </span>
-                          </td>
-                        )}
                         <td style={styles.td}>
-                          <button
-                            onClick={() => handleEdit(user)}
-                            style={styles.iconAction}
-                            title="Edit"
-                          >
-                            ✏️
-                          </button>
-                          <button
-                            onClick={() => handleDelete(user._id, activeTab)}
-                            style={{ ...styles.iconAction, color: "#ef4444" }}
-                            title="Delete"
-                          >
-                            🗑️
-                          </button>
+                          {s.fees === "Pending" ? (
+                            <button
+                              style={styles.btnOutline}
+                              onClick={() => alert("Reminder Sent!")}
+                            >
+                              🔔 Remind
+                            </button>
+                          ) : (
+                            <button style={styles.btnGhost}>⬇ Download</button>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -599,268 +731,489 @@ const AdminDash = () => {
                 </table>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* 3️⃣ FINANCE */}
-        {activeTab === "finance" && (
-          <div style={styles.tableCard}>
-            <h3 style={styles.cardTitle}>Financial Overview</h3>
-            <table style={styles.table}>
-              <thead>
-                <tr style={styles.trHead}>
-                  <th>Student</th>
-                  <th>Course</th>
-                  <th>Dues</th>
-                  <th>Status</th>
-                  <th>Invoice</th>
-                </tr>
-              </thead>
-              <tbody>
-                {students.map((s) => (
-                  <tr key={s._id} style={styles.tr}>
-                    <td style={styles.td}>
-                      <b>{s.name}</b>
-                    </td>
-                    <td style={styles.td}>{s.course || "N/A"}</td>
-                    <td style={styles.td}>₹28,000</td>
-                    <td style={styles.td}>
-                      <span
-                        style={
-                          s.fees === "Paid"
-                            ? styles.statusSuccess
-                            : styles.statusWarning
-                        }
-                      >
-                        {s.fees}
-                      </span>
-                    </td>
-                    <td style={styles.td}>
-                      {s.fees === "Pending" ? (
-                        <button
-                          style={styles.secondaryBtnSm}
-                          onClick={() => alert("Reminder Sent!")}
-                        >
-                          🔔 Send Reminder
-                        </button>
-                      ) : (
-                        <button style={styles.successBtnSm}>⬇ Download</button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {/* 4️⃣ NOTICES */}
-        {activeTab === "notices" && (
-          <div
-            style={{
-              ...styles.fadeProps,
-              display: "grid",
-              gridTemplateColumns: "1fr 2fr",
-              gap: "20px",
-            }}
-          >
-            <div style={styles.formCard}>
-              <h3 style={styles.cardTitle}>📢 Publish Announcement</h3>
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  setNotices([
-                    ...notices,
-                    {
-                      id: Date.now(),
-                      title: formData.name,
-                      date: new Date().toISOString().split("T")[0],
-                      type: "General",
-                    },
-                  ]);
-                  setFormData({ ...formData, name: "" });
-                }}
-              >
-                <div style={styles.inputGroup}>
-                  <label style={styles.label}>Notice Content</label>
+          {/* 4️⃣ NOTICES */}
+          {activeTab === "notices" && (
+            <div
+              style={{
+                ...styles.fadeIn,
+                display: "grid",
+                gridTemplateColumns: isMobile ? "1fr" : "1fr 2fr",
+                gap: "24px",
+              }}
+            >
+              <div style={{ ...styles.card, height: "fit-content" }}>
+                <h3 style={{ ...styles.cardTitle, marginBottom: "20px" }}>
+                  📢 Publish Notice
+                </h3>
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    setNotices([
+                      ...notices,
+                      {
+                        id: Date.now(),
+                        title: formData.name,
+                        date: new Date().toISOString().split("T")[0],
+                        type: "General",
+                      },
+                    ]);
+                    setFormData({ ...formData, name: "" });
+                  }}
+                >
                   <textarea
                     rows="4"
                     style={styles.textarea}
-                    placeholder="Enter notice details..."
+                    placeholder="Enter details..."
                     value={formData.name}
                     onChange={(e) =>
                       setFormData({ ...formData, name: e.target.value })
                     }
                     required
                   />
-                </div>
-                <button type="submit" style={styles.primaryBtn}>
-                  Publish to Portal
-                </button>
-              </form>
-            </div>
-            <div style={styles.tableCard}>
-              <h3 style={styles.cardTitle}>Notice Board</h3>
-              <div style={styles.noticeList}>
-                {notices.map((n) => (
-                  <div key={n.id} style={styles.noticeItem}>
-                    <div style={styles.noticeIcon}>📢</div>
-                    <div style={{ flex: 1 }}>
-                      <h4 style={styles.noticeTitle}>{n.title}</h4>
-                      <p style={styles.noticeMeta}>
-                        {n.date} • <span style={styles.badge}>{n.type}</span>
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => handleDelete(n.id, "notices")}
-                      style={styles.iconAction}
-                    >
-                      🗑️
-                    </button>
-                  </div>
-                ))}
+                  <button
+                    type="submit"
+                    style={{
+                      ...styles.primaryBtn,
+                      width: "100%",
+                      marginTop: "15px",
+                    }}
+                  >
+                    Publish
+                  </button>
+                </form>
               </div>
-            </div>
-          </div>
-        )}
-
-        {/* 5️⃣ SETTINGS */}
-        {activeTab === "settings" && (
-          <div style={styles.formCard}>
-            <h3 style={styles.cardTitle}>⚙️ Global Configuration</h3>
-            <div style={styles.settingsGrid}>
-              <div style={styles.inputGroup}>
-                <label style={styles.label}>Institute Name</label>
-                <input
-                  style={styles.input}
-                  value={settings.instituteName}
-                  onChange={(e) =>
-                    setSettings({ ...settings, instituteName: e.target.value })
-                  }
-                />
-              </div>
-              <div style={styles.inputGroup}>
-                <label style={styles.label}>Current Academic Session</label>
-                <input
-                  style={styles.input}
-                  value={settings.session}
-                  onChange={(e) =>
-                    setSettings({ ...settings, session: e.target.value })
-                  }
-                />
-              </div>
-
-              <div style={styles.toggleRow}>
-                <div>
-                  <h4 style={styles.settingTitle}>Maintenance Mode</h4>
-                  <p style={styles.settingDesc}>
-                    Suspend all student/faculty access immediately.
-                  </p>
-                </div>
-                <button
-                  onClick={() =>
-                    setSettings({
-                      ...settings,
-                      maintenance: !settings.maintenance,
-                    })
-                  }
-                  style={
-                    settings.maintenance ? styles.toggleOn : styles.toggleOff
-                  }
+              <div style={styles.card}>
+                <h3 style={{ ...styles.cardTitle, marginBottom: "20px" }}>
+                  Notice Board
+                </h3>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "12px",
+                  }}
                 >
-                  <div
-                    style={
-                      settings.maintenance
-                        ? styles.toggleKnobOn
-                        : styles.toggleKnobOff
-                    }
-                  ></div>
-                </button>
+                  {notices.map((n) => (
+                    <div key={n.id} style={styles.noticeCard}>
+                      <div style={styles.noticeIcon}>📢</div>
+                      <div style={{ flex: 1 }}>
+                        <h4
+                          style={{
+                            margin: 0,
+                            fontWeight: "600",
+                            color: "#0f172a",
+                          }}
+                        >
+                          {n.title}
+                        </h4>
+                        <p
+                          style={{
+                            margin: 0,
+                            fontSize: "12px",
+                            color: "#64748b",
+                          }}
+                        >
+                          {n.date} •{" "}
+                          <span
+                            style={{
+                              color:
+                                n.type === "Urgent" ? "#ef4444" : "#2563eb",
+                            }}
+                          >
+                            {n.type}
+                          </span>
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => handleDelete(n.id, "notices")}
+                        style={styles.iconAction}
+                      >
+                        <IconTrash />
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
+            </div>
+          )}
 
-              <div style={{ gridColumn: "1 / -1", marginTop: "20px" }}>
+          {/* 5️⃣ SETTINGS */}
+          {activeTab === "settings" && (
+            <div style={{ ...styles.card, maxWidth: "600px" }}>
+              <h3 style={{ ...styles.cardTitle, marginBottom: "20px" }}>
+                ⚙️ Global Configuration
+              </h3>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "15px",
+                }}
+              >
+                <div>
+                  <label style={styles.label}>Institute Name</label>
+                  <input
+                    style={styles.input}
+                    value={settings.instituteName}
+                    onChange={(e) =>
+                      setSettings({
+                        ...settings,
+                        instituteName: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div>
+                  <label style={styles.label}>Academic Session</label>
+                  <input
+                    style={styles.input}
+                    value={settings.session}
+                    onChange={(e) =>
+                      setSettings({ ...settings, session: e.target.value })
+                    }
+                  />
+                </div>
+                <div style={styles.toggleRow}>
+                  <div>
+                    <h4 style={{ margin: 0, fontWeight: "600" }}>
+                      Maintenance Mode
+                    </h4>
+                    <p
+                      style={{ margin: 0, fontSize: "12px", color: "#64748b" }}
+                    >
+                      Suspend all access.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() =>
+                      setSettings({
+                        ...settings,
+                        maintenance: !settings.maintenance,
+                      })
+                    }
+                    style={
+                      settings.maintenance ? styles.toggleOn : styles.toggleOff
+                    }
+                  >
+                    <div
+                      style={
+                        settings.maintenance
+                          ? styles.toggleKnobOn
+                          : styles.toggleKnobOff
+                      }
+                    ></div>
+                  </button>
+                </div>
                 <button
-                  style={styles.primaryBtn}
+                  style={{ ...styles.primaryBtn, marginTop: "10px" }}
                   onClick={() => alert("Settings Saved!")}
                 >
                   Save Configuration
                 </button>
               </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      </main>
     </div>
   );
 };
 
-// 🧩 COMPONENTS
+// 🎨 SUB-COMPONENTS & ICONS
 const NavBtn = ({ icon, label, active, onClick }) => (
   <button
     style={active ? styles.navBtnActive : styles.navBtn}
     onClick={onClick}
   >
-    <span style={{ marginRight: "12px" }}>{icon}</span> {label}
+    {icon} <span style={{ marginLeft: "12px" }}>{label}</span>
   </button>
 );
 
-const StatCard = ({ title, value, icon, color, trend }) => (
-  <div style={styles.statCard}>
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "start",
-      }}
-    >
-      <div>
-        <p style={styles.statTitle}>{title}</p>
-        <h3 style={styles.statValue}>{value}</h3>
-        <p
-          style={{
-            ...styles.statTrend,
-            color: trend.includes("+") ? "#10b981" : "#64748b",
-          }}
-        >
-          {trend}
-        </p>
-      </div>
+const StatCard = ({ label, value, change, icon, color }) => {
+  const colors = {
+    blue: { bg: "#eff6ff", text: "#2563eb" },
+    emerald: { bg: "#ecfdf5", text: "#10b981" },
+    amber: { bg: "#fffbeb", text: "#f59e0b" },
+    rose: { bg: "#fff1f2", text: "#f43f5e" },
+  };
+  const theme = colors[color] || colors.blue;
+
+  return (
+    <div style={styles.statCard}>
       <div
         style={{
-          ...styles.statIcon,
-          backgroundColor: `${color}20`,
-          color: color,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "start",
         }}
       >
-        {icon}
+        <div>
+          <p style={styles.statLabel}>{label}</p>
+          <h3 style={styles.statValue}>{value}</h3>
+          <p
+            style={{
+              fontSize: "12px",
+              fontWeight: "500",
+              color: change.includes("+") ? "#10b981" : "#64748b",
+            }}
+          >
+            {change}
+          </p>
+        </div>
+        <div
+          style={{ ...styles.iconBox, background: theme.bg, color: theme.text }}
+        >
+          {icon}
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 const TimelineItem = ({ time, title, desc, color }) => (
   <div style={styles.timelineItem}>
     <div style={{ ...styles.timelineDot, borderColor: color }}></div>
     <div>
-      <p style={styles.timelineTime}>{time}</p>
-      <h5 style={styles.timelineTitle}>{title}</h5>
-      <p style={styles.timelineDesc}>{desc}</p>
+      <p
+        style={{
+          fontSize: "11px",
+          fontWeight: "600",
+          color: "#94a3b8",
+          margin: 0,
+        }}
+      >
+        {time}
+      </p>
+      <h5
+        style={{
+          fontSize: "14px",
+          fontWeight: "600",
+          color: "#334155",
+          margin: 0,
+        }}
+      >
+        {title}
+      </h5>
+      <p style={{ fontSize: "13px", color: "#64748b", margin: "2px 0 0 0" }}>
+        {desc}
+      </p>
     </div>
   </div>
 );
 
-// 💅 STYLES
+// SIMPLE ICONS (SVG)
+const IconChart = () => (
+  <svg
+    width="20"
+    height="20"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="2"
+      d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+    />
+  </svg>
+);
+const IconBell = ({ color = "currentColor" }) => (
+  <svg width="20" height="20" fill="none" stroke={color} viewBox="0 0 24 24">
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="2"
+      d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+    />
+  </svg>
+);
+const IconUser = () => (
+  <svg
+    width="20"
+    height="20"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="2"
+      d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+    />
+  </svg>
+);
+const IconBook = () => (
+  <svg
+    width="20"
+    height="20"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="2"
+      d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+    />
+  </svg>
+);
+const IconCash = () => (
+  <svg
+    width="20"
+    height="20"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="2"
+      d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+    />
+  </svg>
+);
+const IconSettings = () => (
+  <svg
+    width="20"
+    height="20"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="2"
+      d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+    />
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="2"
+      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+    />
+  </svg>
+);
+const IconLogOut = () => (
+  <svg
+    width="20"
+    height="20"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="2"
+      d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+    />
+  </svg>
+);
+const IconMenu = () => (
+  <svg
+    width="24"
+    height="24"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="2"
+      d="M4 6h16M4 12h16M4 18h16"
+    />
+  </svg>
+);
+const IconSearch = ({ color }) => (
+  <svg width="18" height="18" fill="none" stroke={color} viewBox="0 0 24 24">
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="2"
+      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+    />
+  </svg>
+);
+const IconAlert = () => (
+  <svg
+    width="20"
+    height="20"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="2"
+      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+    />
+  </svg>
+);
+const IconEdit = () => (
+  <svg
+    width="16"
+    height="16"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="2"
+      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+    />
+  </svg>
+);
+const IconTrash = () => (
+  <svg
+    width="16"
+    height="16"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="2"
+      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+    />
+  </svg>
+);
+const IconCalendar = ({ color }) => (
+  <svg width="20" height="20" fill="none" stroke={color} viewBox="0 0 24 24">
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="2"
+      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+    />
+  </svg>
+);
+
+// 💅 CSS-IN-JS STYLES (Tailwind Replica)
 const styles = {
-  // 🟢 CONTAINER: Standard Block flow
   container: {
+    display: "flex",
     minHeight: "100vh",
     backgroundColor: "#f1f5f9",
     fontFamily: "'Inter', sans-serif",
   },
 
-  // 🟢 SIDEBAR: Fixed, Flex Column, High Z-Index
+  // SIDEBAR (FIXED FLEX LAYOUT)
   sidebar: {
-    backgroundColor: "#1e293b",
+    width: "260px",
+    background: "linear-gradient(to bottom, #1e293b, #0f172a)",
     color: "#f8fafc",
     display: "flex",
     flexDirection: "column",
@@ -868,46 +1221,57 @@ const styles = {
     position: "fixed",
     top: 0,
     left: 0,
-    height: "100vh",
-    zIndex: 1000,
-    overflow: "hidden",
-    whiteSpace: "nowrap",
-    transition: "width 0.3s ease, padding 0.3s ease, opacity 0.3s ease",
+    bottom: 0,
+    zIndex: 2000,
+    transition: "transform 0.3s ease",
   },
-
-  // 🟢 NEW: Scrollable Menu Area (Keeps Logout Button at Bottom)
-  scrollableMenu: { flex: 1, overflowY: "auto", overflowX: "hidden" },
-
-  // 🟢 MAIN CONTENT: Margin Left pushes it away from sidebar
-  content: {
-    padding: "32px",
-    transition: "margin-left 0.3s ease",
-    width: "auto",
+  scrollableMenu: {
+    flex: 1,
+    overflowY: "auto",
+    padding: "16px",
+    scrollbarWidth: "thin",
   },
-
-  // Sidebar Elements
+  sidebarFooter: {
+    padding: "16px",
+    borderTop: "1px solid #334155",
+    backgroundColor: "#0f172a",
+    flexShrink: 0,
+  },
   logoContainer: {
+    padding: "24px",
     display: "flex",
     alignItems: "center",
     gap: "12px",
-    marginBottom: "30px",
-    paddingLeft: "10px",
+    borderBottom: "1px solid #334155",
+    flexShrink: 0,
   },
-  logoIcon: { fontSize: "28px" },
+  logoIcon: {
+    fontSize: "24px",
+    background: "rgba(59, 130, 246, 0.2)",
+    width: "40px",
+    height: "40px",
+    borderRadius: "10px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   logoText: {
     fontSize: "20px",
     fontWeight: "700",
     letterSpacing: "-0.5px",
     margin: 0,
   },
+
+  // NAV BUTTONS
   menuGroup: { marginBottom: "24px" },
   menuLabel: {
     fontSize: "11px",
     fontWeight: "700",
     color: "#94a3b8",
-    marginBottom: "12px",
+    marginBottom: "8px",
     paddingLeft: "12px",
     letterSpacing: "1px",
+    textTransform: "uppercase",
   },
   navBtn: {
     width: "100%",
@@ -916,7 +1280,7 @@ const styles = {
     background: "transparent",
     color: "#cbd5e1",
     border: "none",
-    borderRadius: "8px",
+    borderRadius: "12px",
     cursor: "pointer",
     fontSize: "14px",
     fontWeight: "500",
@@ -928,92 +1292,121 @@ const styles = {
     width: "100%",
     textAlign: "left",
     padding: "12px 16px",
-    background: "#3b82f6",
+    background: "#2563eb",
     color: "white",
     border: "none",
-    borderRadius: "8px",
+    borderRadius: "12px",
     cursor: "pointer",
     fontSize: "14px",
     fontWeight: "600",
     display: "flex",
     alignItems: "center",
-    boxShadow: "0 4px 6px -1px rgba(59, 130, 246, 0.5)",
+    boxShadow: "0 4px 12px rgba(37, 99, 235, 0.4)",
   },
   logoutBtn: {
-    marginTop: "auto",
-    padding: "14px",
+    width: "100%",
+    padding: "12px",
     background: "#334155",
     color: "#f8fafc",
     border: "1px solid #475569",
-    borderRadius: "8px",
+    borderRadius: "12px",
     cursor: "pointer",
     fontWeight: "600",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "8px",
     transition: "0.2s",
-    marginBottom: "10px",
   },
 
-  // Header
+  // MAIN CONTENT
+  main: {
+    flex: 1,
+    transition: "margin-left 0.3s ease",
+    minHeight: "100vh",
+    width: "100%",
+    backgroundColor: "#f8fafc",
+  },
+  contentBody: { padding: "24px", maxWidth: "1400px", margin: "0 auto" },
+  overlay: {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    width: "100%",
+    height: "100%",
+    backgroundColor: "rgba(0,0,0,0.5)",
+    zIndex: 1900,
+  },
+
+  // HEADER
   header: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: "32px",
+    padding: "16px 24px",
+    backgroundColor: "white",
+    borderBottom: "1px solid #e2e8f0",
+    position: "sticky",
+    top: 0,
+    zIndex: 100,
+  },
+  hamburger: {
+    background: "none",
+    border: "none",
+    cursor: "pointer",
+    color: "#334155",
+    marginRight: "16px",
   },
   pageTitle: {
-    fontSize: "24px",
+    fontSize: "20px",
     fontWeight: "700",
     color: "#0f172a",
     margin: 0,
   },
-  hamburgerBtn: {
-    background: "none",
-    border: "none",
-    fontSize: "24px",
-    cursor: "pointer",
-    color: "#334155",
-    marginRight: "15px",
-  },
-  headerActions: { display: "flex", alignItems: "center", gap: "20px" },
+  headerActions: { display: "flex", alignItems: "center", gap: "16px" },
   searchBar: {
     display: "flex",
     alignItems: "center",
-    background: "white",
-    padding: "10px 16px",
-    borderRadius: "50px",
-    boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+    background: "#f1f5f9",
+    padding: "8px 16px",
+    borderRadius: "99px",
+    width: "240px",
     border: "1px solid #e2e8f0",
   },
-  headerSearch: {
+  searchInput: {
     border: "none",
     outline: "none",
+    background: "transparent",
     fontSize: "14px",
     marginLeft: "8px",
-    width: "200px",
+    width: "100%",
   },
   iconBtn: {
-    fontSize: "20px",
-    cursor: "pointer",
     background: "white",
-    padding: "10px",
-    borderRadius: "50%",
-    boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
     border: "1px solid #e2e8f0",
+    borderRadius: "50%",
+    width: "40px",
+    height: "40px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: "pointer",
+    color: "#64748b",
   },
   profileBadge: {
     display: "flex",
     alignItems: "center",
-    gap: "12px",
-    background: "white",
-    padding: "6px 16px 6px 6px",
+    gap: "10px",
+    padding: "4px 8px",
     borderRadius: "50px",
-    border: "1px solid #e2e8f0",
     cursor: "pointer",
+    border: "1px solid transparent",
   },
   avatar: {
     width: "36px",
     height: "36px",
     borderRadius: "50%",
-    background: "#3b82f6",
+    background: "linear-gradient(135deg, #3b82f6, #2563eb)",
     color: "white",
     display: "flex",
     justifyContent: "center",
@@ -1024,21 +1417,34 @@ const styles = {
   profileName: { fontSize: "14px", fontWeight: "600", color: "#0f172a" },
   profileRole: { fontSize: "11px", color: "#64748b" },
 
-  // Cards & Grid
-  statGrid: {
+  // GRIDS
+  fadeIn: { animation: "fadeIn 0.3s ease-in-out" },
+  grid4: {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
     gap: "24px",
-    marginBottom: "32px",
+    marginBottom: "24px",
   },
+  gridSplit: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(350px, 1fr))",
+    gap: "24px",
+  },
+  formGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
+    gap: "20px",
+  },
+
+  // CARDS
   statCard: {
     background: "white",
     padding: "24px",
     borderRadius: "16px",
-    boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)",
-    border: "1px solid #f1f5f9",
+    border: "1px solid #e2e8f0",
+    boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
   },
-  statTitle: {
+  statLabel: {
     fontSize: "13px",
     fontWeight: "600",
     color: "#64748b",
@@ -1048,41 +1454,48 @@ const styles = {
     fontSize: "28px",
     fontWeight: "700",
     color: "#0f172a",
-    margin: "0 0 8px 0",
+    margin: "0 0 4px 0",
   },
-  statTrend: { fontSize: "12px", fontWeight: "500" },
-  statIcon: {
+  iconBox: {
     width: "48px",
     height: "48px",
     borderRadius: "12px",
     display: "flex",
-    justifyContent: "center",
     alignItems: "center",
-    fontSize: "20px",
+    justifyContent: "center",
   },
 
-  splitGrid: { display: "grid", gridTemplateColumns: "2fr 1fr", gap: "24px" },
   card: {
     background: "white",
-    padding: "24px",
+    padding: "0",
     borderRadius: "16px",
-    boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)",
-    border: "1px solid #f1f5f9",
+    border: "1px solid #e2e8f0",
+    boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+    overflow: "hidden",
+    height: "100%",
+    paddingBottom: "20px",
+  },
+  cardHeader: {
+    padding: "20px 24px",
+    borderBottom: "1px solid #f1f5f9",
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
   },
   cardTitle: {
     fontSize: "16px",
     fontWeight: "700",
     color: "#0f172a",
-    margin: "0 0 20px 0",
+    margin: 0,
   },
 
-  // Charts & Timeline
+  // CHART & TIMELINE
   chartContainer: {
     height: "200px",
     display: "flex",
     alignItems: "flex-end",
     justifyContent: "space-between",
-    padding: "0 20px",
+    padding: "24px",
   },
   barWrapper: {
     display: "flex",
@@ -1093,98 +1506,72 @@ const styles = {
     flex: 1,
   },
   bar: {
-    width: "24px",
-    background: "#3b82f6",
+    width: "20px",
+    background: "linear-gradient(to top, #3b82f6, #60a5fa)",
     borderRadius: "4px 4px 0 0",
     transition: "height 0.5s ease",
   },
   barLabel: {
-    marginTop: "8px",
-    fontSize: "12px",
+    marginTop: "12px",
+    fontSize: "11px",
     color: "#64748b",
-    fontWeight: "500",
+    fontWeight: "600",
   },
 
-  timeline: {
-    paddingLeft: "10px",
-    borderLeft: "2px solid #e2e8f0",
-    marginLeft: "10px",
-  },
+  timeline: { padding: "24px" },
   timelineItem: {
     position: "relative",
     paddingLeft: "24px",
     marginBottom: "24px",
+    borderLeft: "2px solid #e2e8f0",
   },
   timelineDot: {
-    width: "12px",
-    height: "12px",
+    width: "10px",
+    height: "10px",
     borderRadius: "50%",
     background: "white",
-    border: "3px solid",
+    border: "2px solid",
     position: "absolute",
-    left: "-7px",
+    left: "-6px",
     top: "0",
   },
-  timelineTime: {
-    fontSize: "11px",
-    fontWeight: "600",
-    color: "#94a3b8",
-    marginBottom: "4px",
-  },
-  timelineTitle: {
-    fontSize: "14px",
-    fontWeight: "600",
-    color: "#334155",
-    margin: 0,
-  },
-  timelineDesc: { fontSize: "13px", color: "#64748b", margin: "4px 0 0 0" },
 
-  // Forms
-  formCard: {
-    background: "white",
-    padding: "24px",
-    borderRadius: "16px",
-    boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)",
-    height: "fit-content",
-    flex: 1,
-  },
-  formHorizontal: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: "16px",
-  },
-  inputGroup: { display: "flex", flexDirection: "column", gap: "6px" },
-  label: { fontSize: "13px", fontWeight: "600", color: "#475569" },
+  // INPUTS & BUTTONS
   input: {
-    padding: "10px 14px",
+    padding: "12px 16px",
     borderRadius: "8px",
-    border: "1px solid #e2e8f0",
+    border: "1px solid #cbd5e1",
     fontSize: "14px",
+    width: "100%",
     outline: "none",
     transition: "border 0.2s",
-    width: "100%",
-    boxSizing: "border-box",
   },
   select: {
-    padding: "10px 14px",
+    padding: "12px 16px",
     borderRadius: "8px",
-    border: "1px solid #e2e8f0",
+    border: "1px solid #cbd5e1",
     fontSize: "14px",
+    width: "100%",
     outline: "none",
     background: "white",
-    width: "100%",
-    boxSizing: "border-box",
   },
   textarea: {
-    padding: "10px 14px",
+    padding: "12px 16px",
     borderRadius: "8px",
-    border: "1px solid #e2e8f0",
+    border: "1px solid #cbd5e1",
     fontSize: "14px",
+    width: "100%",
     outline: "none",
     resize: "vertical",
-    width: "100%",
   },
-  formActions: { display: "flex", gap: "12px", marginTop: "10px" },
+  label: {
+    fontSize: "13px",
+    fontWeight: "600",
+    color: "#475569",
+    marginBottom: "6px",
+    display: "block",
+  },
+
   primaryBtn: {
     padding: "10px 20px",
     background: "#0f172a",
@@ -1194,6 +1581,7 @@ const styles = {
     fontWeight: "600",
     cursor: "pointer",
     fontSize: "14px",
+    transition: "0.2s",
   },
   secondaryBtn: {
     padding: "10px 20px",
@@ -1205,33 +1593,40 @@ const styles = {
     cursor: "pointer",
     fontSize: "14px",
   },
-
-  // Tables
-  tableCard: {
+  btnOutline: {
+    padding: "6px 12px",
     background: "white",
-    padding: "0",
-    borderRadius: "16px",
-    boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)",
-    flex: 2,
-    overflow: "hidden",
-  },
-  tableHeader: {
-    padding: "20px 24px",
-    borderBottom: "1px solid #f1f5f9",
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  searchInput: {
-    padding: "8px 16px",
+    border: "1px solid #fbbf24",
+    color: "#d97706",
     borderRadius: "6px",
-    border: "1px solid #e2e8f0",
-    fontSize: "13px",
-    width: "220px",
+    fontSize: "12px",
+    fontWeight: "600",
+    cursor: "pointer",
   },
-  tableWrapper: { padding: "0" },
-  table: { width: "100%", borderCollapse: "collapse" },
-  trHead: { background: "#f8fafc", textAlign: "left" },
+  btnGhost: {
+    padding: "6px 12px",
+    background: "#f0fdf4",
+    border: "1px solid #bbf7d0",
+    color: "#16a34a",
+    borderRadius: "6px",
+    fontSize: "12px",
+    fontWeight: "600",
+    cursor: "pointer",
+  },
+
+  // TABLE
+  tableWrapper: { overflowX: "auto" },
+  table: { width: "100%", borderCollapse: "collapse", minWidth: "600px" },
+  th: {
+    padding: "12px 24px",
+    textAlign: "left",
+    fontSize: "12px",
+    fontWeight: "700",
+    color: "#64748b",
+    background: "#f8fafc",
+    textTransform: "uppercase",
+    letterSpacing: "0.5px",
+  },
   tr: { borderBottom: "1px solid #f1f5f9", transition: "background 0.1s" },
   td: {
     padding: "16px 24px",
@@ -1239,7 +1634,6 @@ const styles = {
     color: "#334155",
     verticalAlign: "middle",
   },
-  userCell: { display: "flex", alignItems: "center", gap: "12px" },
   userAvatar: {
     width: "32px",
     height: "32px",
@@ -1252,29 +1646,27 @@ const styles = {
     fontSize: "12px",
     fontWeight: "700",
   },
-  userName: { fontWeight: "600", color: "#0f172a" },
-  badge: {
+  pillBlue: {
     padding: "4px 10px",
     borderRadius: "20px",
-    background: "#f1f5f9",
-    color: "#475569",
-    fontSize: "12px",
-    fontWeight: "600",
-    border: "1px solid #e2e8f0",
-  },
-  statusSuccess: {
-    padding: "4px 10px",
-    borderRadius: "20px",
-    background: "#dcfce7",
-    color: "#166534",
+    background: "#eff6ff",
+    color: "#2563eb",
     fontSize: "12px",
     fontWeight: "600",
   },
-  statusWarning: {
+  pillGreen: {
     padding: "4px 10px",
     borderRadius: "20px",
-    background: "#fee2e2",
-    color: "#991b1b",
+    background: "#ecfdf5",
+    color: "#10b981",
+    fontSize: "12px",
+    fontWeight: "600",
+  },
+  pillRed: {
+    padding: "4px 10px",
+    borderRadius: "20px",
+    background: "#fef2f2",
+    color: "#ef4444",
     fontSize: "12px",
     fontWeight: "600",
   },
@@ -1283,39 +1675,14 @@ const styles = {
     border: "none",
     cursor: "pointer",
     fontSize: "16px",
-    padding: "4px",
-    borderRadius: "4px",
+    padding: "6px",
+    borderRadius: "6px",
     color: "#64748b",
+    transition: "0.2s",
   },
 
-  // Finance & Notices
-  secondaryBtnSm: {
-    padding: "6px 12px",
-    background: "#fff",
-    border: "1px solid #e2e8f0",
-    borderRadius: "6px",
-    fontSize: "12px",
-    fontWeight: "600",
-    cursor: "pointer",
-    color: "#475569",
-  },
-  successBtnSm: {
-    padding: "6px 12px",
-    background: "#f0fdf4",
-    border: "1px solid #dcfce7",
-    borderRadius: "6px",
-    fontSize: "12px",
-    fontWeight: "600",
-    cursor: "pointer",
-    color: "#166534",
-  },
-  noticeList: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "12px",
-    padding: "24px",
-  },
-  noticeItem: {
+  // NOTICES
+  noticeCard: {
     display: "flex",
     gap: "16px",
     padding: "16px",
@@ -1327,30 +1694,17 @@ const styles = {
   noticeIcon: {
     width: "40px",
     height: "40px",
-    background: "#e0f2fe",
-    color: "#0369a1",
+    background: "#eff6ff",
+    color: "#2563eb",
     borderRadius: "10px",
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
     fontSize: "18px",
   },
-  noticeTitle: {
-    fontSize: "14px",
-    fontWeight: "600",
-    color: "#0f172a",
-    margin: "0 0 4px 0",
-  },
-  noticeMeta: { fontSize: "12px", color: "#64748b", margin: 0 },
 
-  // Settings
-  settingsGrid: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: "24px",
-  },
+  // SETTINGS
   toggleRow: {
-    gridColumn: "1 / -1",
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
@@ -1359,17 +1713,10 @@ const styles = {
     borderRadius: "12px",
     border: "1px solid #f1f5f9",
   },
-  settingTitle: {
-    fontSize: "14px",
-    fontWeight: "600",
-    color: "#0f172a",
-    margin: 0,
-  },
-  settingDesc: { fontSize: "13px", color: "#64748b", margin: "4px 0 0 0" },
   toggleOn: {
     width: "44px",
     height: "24px",
-    background: "#3b82f6",
+    background: "#2563eb",
     borderRadius: "20px",
     border: "none",
     cursor: "pointer",
