@@ -2,6 +2,34 @@ import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
+// 🎓 UPDATED: Comprehensive Course List
+const COURSE_OPTIONS = [
+  "BCA (Core)",
+  "BCA (Data Science)",
+  "BCA (AI & ML)",
+  "BCA (Cloud Computing)",
+  "BCA (Cybersecurity)",
+  "B.Tech (CSE)",
+  "B.Tech (IT)",
+  "B.Tech (ECE)",
+  "B.Tech (Mechanical)",
+  "B.Tech (Civil)",
+  "B.Sc (IT)",
+  "B.Sc (Computer Science)",
+  "B.Sc (core)",
+  "M.Sc (Computer Science)",
+  "MCA",
+  "BBA",
+  "MBA (Marketing)",
+  "MBA (Finance)",
+  "MBA (HR)",
+  "B.Pharma",
+  "M.Pharma",
+  "LLB",
+  "BA",
+  "MA",
+];
+
 const AdminDash = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("overview");
@@ -50,11 +78,10 @@ const AdminDash = () => {
     fees: "Pending",
   });
 
-  // 🔄 FETCH DATA FUNCTION (Wrapped in useCallback to fix the warning)
+  // 🔄 FETCH DATA FUNCTION (Wrapped in useCallback)
   const fetchData = useCallback(async () => {
     try {
       const token = localStorage.getItem("token");
-      // If no token, we can't fetch, but we let useEffect handle the redirect
       if (!token) return;
 
       const sRes = await axios.get(`${SERVER_URL}/api/admin/students`, {
@@ -69,7 +96,7 @@ const AdminDash = () => {
     } catch (err) {
       console.error("Fetch Error:", err);
     }
-  }, [SERVER_URL]); // dependency on SERVER_URL is fine
+  }, [SERVER_URL]);
 
   // 🔄 INITIAL LOAD EFFECT
   useEffect(() => {
@@ -79,7 +106,7 @@ const AdminDash = () => {
     } else {
       fetchData();
     }
-  }, [navigate, fetchData]); // ✅ Now 'fetchData' is a valid dependency
+  }, [navigate, fetchData]);
 
   // 📝 HANDLER: Add or Update User
   const handleSubmit = async (e) => {
@@ -89,10 +116,8 @@ const AdminDash = () => {
       const token = localStorage.getItem("token");
 
       if (isEditing) {
-        // Mock update for UI (Backend implementation usually requires PUT route)
         alert(`✏️ Details for ${formData.name} updated successfully!`);
         setIsEditing(null);
-        // In a real app, you'd allow fetchData() here too
       } else {
         const payload = {
           ...formData,
@@ -103,7 +128,7 @@ const AdminDash = () => {
           headers: { Authorization: token },
         });
         alert(`✅ ${payload.role} Added Successfully!`);
-        fetchData(); // Refresh the list
+        fetchData();
       }
 
       setFormData({
@@ -344,6 +369,7 @@ const AdminDash = () => {
 
                   {activeTab === "students" ? (
                     <>
+                      {/* ✅ UPDATED COURSE SELECT WITH REAL DATA */}
                       <select
                         style={styles.select}
                         value={formData.course}
@@ -352,11 +378,14 @@ const AdminDash = () => {
                         }
                         required
                       >
-                        <option value="">Select Course</option>
-                        <option>BCA</option>
-                        <option>B.Tech</option>
-                        <option>MBA</option>
+                        <option value="">-- Select Course --</option>
+                        {COURSE_OPTIONS.map((course, idx) => (
+                          <option key={idx} value={course}>
+                            {course}
+                          </option>
+                        ))}
                       </select>
+
                       <select
                         style={styles.select}
                         value={formData.fees}
@@ -603,7 +632,6 @@ const AdminDash = () => {
                     }
                   />
                 </label>
-
                 <div
                   style={{
                     display: "flex",
@@ -799,6 +827,8 @@ const styles = {
     border: "1px solid #ddd",
     fontSize: "14px",
     background: "#fff",
+    width: "100%",
+    boxSizing: "border-box",
   },
   submitBtn: {
     padding: "12px",
