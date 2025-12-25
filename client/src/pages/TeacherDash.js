@@ -6,15 +6,25 @@ const TeacherDash = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("dashboard");
 
-  // 🔒 REAL BACKEND URL (This connects to your live database)
+  // 🔒 REAL BACKEND URL
   const SERVER_URL =
     "https://student-management-system-server-vygt.onrender.com";
+
+  // 📚 REAL SUBJECT LIST (From your screenshot)
+  const SUBJECT_LIST = [
+    "AWS Cloud Essentials",
+    "Computer Graphics and Multimedia Systems",
+    "Cryptography and Data Security",
+    "Software Quality Management",
+    "Enterprise Resource Planning Concepts",
+    "Cyber Law and Forensics",
+  ];
 
   // 👤 IDENTITY STATE
   const [teacher, setTeacher] = useState({
     name: "Professor",
     email: "",
-    subject: "General",
+    subject: "Computer Graphics and Multimedia Systems", // Default
   });
 
   // Data States
@@ -23,15 +33,15 @@ const TeacherDash = () => {
   const [marks, setMarks] = useState({});
 
   // UI States
-  const [selectedSubject, setSelectedSubject] = useState("Computer Science");
+  const [selectedSubject, setSelectedSubject] = useState(SUBJECT_LIST[1]); // Default to CG
   const [selectedDate, setSelectedDate] = useState(
     new Date().toISOString().split("T")[0]
   );
   const [message, setMessage] = useState("");
 
-  // 🔄 Initial Load (User Profile + Students)
+  // 🔄 Initial Load
   useEffect(() => {
-    // 1. Load Teacher Profile from LocalStorage
+    // 1. Load Teacher Profile
     const userStr = localStorage.getItem("user");
     if (userStr) {
       const user = JSON.parse(userStr);
@@ -40,18 +50,19 @@ const TeacherDash = () => {
         email: user.email,
         subject: user.subject || "Assigned Subject",
       });
-      if (user.subject) setSelectedSubject(user.subject);
+      // If teacher has a specific subject assigned, select it automatically
+      if (user.subject && SUBJECT_LIST.includes(user.subject)) {
+        setSelectedSubject(user.subject);
+      }
     } else {
-      navigate("/"); // Redirect if not logged in
+      navigate("/");
     }
 
-    // 2. Fetch REAL Students from Database
+    // 2. Fetch REAL Students
     const fetchStudents = async () => {
       try {
         const token = localStorage.getItem("token");
-        console.log("📡 Fetching students from:", SERVER_URL);
 
-        // ✅ Updated: Uses SERVER_URL instead of VITE_API_URL
         const res = await axios.get(`${SERVER_URL}/api/admin/students`, {
           headers: { Authorization: token },
         });
@@ -64,19 +75,19 @@ const TeacherDash = () => {
         }
       } catch (err) {
         console.warn("⚠️ Fetch Failed, using Demo Data:", err);
-        // Fallback Demo Data (Only shows if server fails)
+        // Fallback Demo Data
         const demoData = [
           {
             _id: "demo1",
-            name: "Demo Student 1",
-            roll: "CS-000",
-            email: "demo@cpu.edu",
+            name: "Lakshya Sharma",
+            roll: "CAL742",
+            email: "student@cpu.edu",
           },
           {
             _id: "demo2",
-            name: "Demo Student 2",
-            roll: "CS-000",
-            email: "demo2@cpu.edu",
+            name: "Mayank Madaan",
+            roll: "CAL755",
+            email: "mayank@cpu.edu",
           },
         ];
         setStudents(demoData);
@@ -92,7 +103,6 @@ const TeacherDash = () => {
     const initialMarks = {};
     data.forEach((s) => {
       initial[s._id] = "Present";
-      // Use existing marks if available, otherwise blank
       initialMarks[s._id] = { mid: "", final: "" };
     });
     setAttendance(initial);
@@ -114,7 +124,7 @@ const TeacherDash = () => {
   };
 
   const submitAttendance = () => {
-    setMessage("✅ Attendance Saved Successfully!");
+    setMessage(`✅ Attendance Saved for ${selectedSubject}!`);
     setTimeout(() => setMessage(""), 3000);
   };
 
@@ -126,7 +136,6 @@ const TeacherDash = () => {
     }));
   };
 
-  // Calculate Stats
   const presentCount = Object.values(attendance).filter(
     (s) => s === "Present"
   ).length;
@@ -198,7 +207,7 @@ const TeacherDash = () => {
                   Welcome back, {teacher.name}! 👋
                 </h2>
                 <p style={{ color: "#7f8c8d" }}>
-                  Subject: <b>{teacher.subject}</b>
+                  Department: <b>Computer Science & Engineering</b>
                 </p>
               </div>
 
@@ -214,20 +223,23 @@ const TeacherDash = () => {
                   color="#2ecc71"
                 />
                 <StatCard
-                  title="Upcoming Class"
-                  value="10:00 AM"
-                  sub={teacher.subject}
+                  title="Active Subject"
+                  value={
+                    selectedSubject.split(" ").slice(0, 2).join(" ") + "..."
+                  }
+                  sub="Currently Selected"
                   color="#9b59b6"
                 />
               </div>
 
               <div style={styles.sectionGrid}>
                 <div style={styles.card}>
-                  <h3>📅 Today's Schedule</h3>
+                  <h3>📅 Today's Classes</h3>
                   <div style={styles.scheduleItem}>
                     <div style={styles.timeBadge}>09:00 AM</div>
                     <div>
-                      <strong>{teacher.subject}</strong>
+                      {/* Dynamic Subject Display */}
+                      <strong>{SUBJECT_LIST[1]}</strong>
                       <p style={{ fontSize: "12px", color: "#666" }}>
                         Lab 2, Block A
                       </p>
@@ -241,7 +253,7 @@ const TeacherDash = () => {
                   >
                     <div style={styles.timeBadge}>11:00 AM</div>
                     <div>
-                      <strong>Database Systems</strong>
+                      <strong>{SUBJECT_LIST[2]}</strong>
                       <p style={{ fontSize: "12px", color: "#666" }}>
                         Room 304, Block B
                       </p>
@@ -280,15 +292,18 @@ const TeacherDash = () => {
                     onChange={(e) => setSelectedDate(e.target.value)}
                     style={styles.input}
                   />
+
+                  {/* ✅ UPDATED REAL SUBJECTS DROPDOWN */}
                   <select
                     value={selectedSubject}
                     onChange={(e) => setSelectedSubject(e.target.value)}
                     style={styles.select}
                   >
-                    <option>{teacher.subject}</option>
-                    <option>Computer Science</option>
-                    <option>Physics</option>
-                    <option>Mathematics</option>
+                    {SUBJECT_LIST.map((sub, index) => (
+                      <option key={index} value={sub}>
+                        {sub}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -360,7 +375,7 @@ const TeacherDash = () => {
           {/* 3️⃣ GRADEBOOK TAB */}
           {activeTab === "marks" && (
             <div style={styles.card}>
-              <h3>🎓 Student Gradebook</h3>
+              <h3>🎓 Gradebook: {selectedSubject}</h3>
               <table style={styles.table}>
                 <thead>
                   <tr style={styles.trHead}>
@@ -482,9 +497,13 @@ const NavBtn = ({ label, active, onClick }) => (
 
 const StatCard = ({ title, value, sub, color }) => (
   <div style={{ ...styles.statCard, borderTop: `4px solid ${color}` }}>
-    <h3 style={{ fontSize: "28px", color: "#2c3e50", margin: 0 }}>{value}</h3>
-    <p style={{ color: "#7f8c8d", margin: 0 }}>{title}</p>
-    {sub && <small style={{ color: color, fontWeight: "bold" }}>{sub}</small>}
+    <h3 style={{ fontSize: "24px", color: "#2c3e50", margin: 0 }}>{value}</h3>
+    <p style={{ color: "#7f8c8d", margin: 0, fontSize: "14px" }}>{title}</p>
+    {sub && (
+      <small style={{ color: color, fontWeight: "bold", fontSize: "11px" }}>
+        {sub}
+      </small>
+    )}
   </div>
 );
 
@@ -648,7 +667,12 @@ const styles = {
   },
   controls: { display: "flex", gap: "10px" },
   input: { padding: "8px", borderRadius: "6px", border: "1px solid #ddd" },
-  select: { padding: "8px", borderRadius: "6px", border: "1px solid #ddd" },
+  select: {
+    padding: "8px",
+    borderRadius: "6px",
+    border: "1px solid #ddd",
+    minWidth: "200px",
+  },
   toolbar: {
     display: "flex",
     justifyContent: "space-between",
