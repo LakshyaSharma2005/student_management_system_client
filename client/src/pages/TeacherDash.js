@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
-// 📚 MOVED OUTSIDE: Fixes the ESLint "Missing Dependency" Warning
+// 📚 SUBJECT CONFIGURATION
 const SUBJECT_LIST = [
   "AWS Cloud Essentials",
   "Computer Graphics and Multimedia Systems",
@@ -12,11 +12,16 @@ const SUBJECT_LIST = [
   "Cyber Law and Forensics",
 ];
 
+// Subjects that have the extra Practical (50) component
+const PRACTICAL_SUBJECTS = [
+  "AWS Cloud Essentials",
+  "Computer Graphics and Multimedia Systems",
+];
+
 const TeacherDash = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("dashboard");
 
-  // 🔒 REAL BACKEND URL
   const SERVER_URL =
     "https://student-management-system-server-vygt.onrender.com";
 
@@ -24,10 +29,9 @@ const TeacherDash = () => {
   const [teacher, setTeacher] = useState({
     name: "Professor",
     email: "",
-    subject: "Computer Graphics and Multimedia Systems", // Default
+    subject: SUBJECT_LIST[1],
   });
 
-  // Data States
   const [students, setStudents] = useState([]);
   const [attendance, setAttendance] = useState({});
   const [marks, setMarks] = useState({});
@@ -39,9 +43,11 @@ const TeacherDash = () => {
   );
   const [message, setMessage] = useState("");
 
+  // Helper: Check if current subject is practical
+  const isPracticalSubject = PRACTICAL_SUBJECTS.includes(selectedSubject);
+
   // 🔄 Initial Load
   useEffect(() => {
-    // 1. Load Teacher Profile
     const userStr = localStorage.getItem("user");
     if (userStr) {
       const user = JSON.parse(userStr);
@@ -50,7 +56,6 @@ const TeacherDash = () => {
         email: user.email,
         subject: user.subject || "Assigned Subject",
       });
-      // If teacher has a specific subject assigned, select it automatically
       if (user.subject && SUBJECT_LIST.includes(user.subject)) {
         setSelectedSubject(user.subject);
       }
@@ -58,24 +63,21 @@ const TeacherDash = () => {
       navigate("/");
     }
 
-    // 2. Fetch REAL Students
     const fetchStudents = async () => {
       try {
         const token = localStorage.getItem("token");
-
         const res = await axios.get(`${SERVER_URL}/api/admin/students`, {
           headers: { Authorization: token },
         });
 
         if (res.data && res.data.length > 0) {
           setStudents(res.data);
-          initializeAttendance(res.data);
+          initializeData(res.data);
         } else {
           throw new Error("No students found in DB");
         }
       } catch (err) {
-        console.warn("⚠️ Fetch Failed, using Demo Data:", err);
-        // Fallback Demo Data
+        console.warn("Using Demo Data:", err);
         const demoData = [
           {
             _id: "demo1",
@@ -91,21 +93,28 @@ const TeacherDash = () => {
           },
         ];
         setStudents(demoData);
-        initializeAttendance(demoData);
+        initializeData(demoData);
       }
     };
 
     fetchStudents();
-  }, [navigate]); // ✅ SUBJECT_LIST is outside, so no warning needed here
+  }, [navigate]);
 
-  const initializeAttendance = (data) => {
-    const initial = {};
+  const initializeData = (data) => {
+    const initialAtt = {};
     const initialMarks = {};
     data.forEach((s) => {
-      initial[s._id] = "Present";
-      initialMarks[s._id] = { mid: "", final: "" };
+      initialAtt[s._id] = "Present";
+      // Initialize all new fields
+      initialMarks[s._id] = {
+        minor: "",
+        major: "",
+        assign: "",
+        quiz: "",
+        practical: "",
+      };
     });
-    setAttendance(initial);
+    setAttendance(initialAtt);
     setMarks(initialMarks);
   };
 
@@ -136,6 +145,42 @@ const TeacherDash = () => {
     }));
   };
 
+  // 🧠 CALCULATION LOGIC
+  const getStudentStats = (id) => {
+    const sMarks = marks[id] || {};
+
+    // Parse inputs (default to 0)
+    const minor = Number(sMarks.minor || 0);
+    const major = Number(sMarks.major || 0);
+    const assign = Number(sMarks.assign || 0);
+    const quiz = Number(sMarks.quiz || 0);
+    const practical = isPracticalSubject ? Number(sMarks.practical || 0) : 0;
+
+    const total = minor + major + assign + quiz + practical;
+
+    // Passing Criteria
+    // Theory Only: Pass = 40 (out of 100)
+    // Practical Sub: Pass = 60 (out of 150)
+    const passingMarks = isPracticalSubject ? 60 : 40;
+    const maxMarks = isPracticalSubject ? 150 : 100;
+
+    let status = "Pass";
+    let statusColor = "#27ae60"; // Green
+
+    if (total < passingMarks) {
+      const shortfall = passingMarks - total;
+      if (shortfall <= 5) {
+        status = "Re-Major";
+        statusColor = "#f39c12"; // Orange (Close call)
+      } else {
+        status = "Summer";
+        statusColor = "#e74c3c"; // Red (Fail)
+      }
+    }
+
+    return { total, maxMarks, status, statusColor };
+  };
+
   const presentCount = Object.values(attendance).filter(
     (s) => s === "Present"
   ).length;
@@ -146,7 +191,7 @@ const TeacherDash = () => {
 
   return (
     <div style={styles.container}>
-      {/* 🟢 TOP NAVBAR */}
+      {/* NAVBAR */}
       <div style={styles.navbar}>
         <div style={styles.brand}>
           <span style={styles.logoIcon}>👨‍🏫</span>
@@ -172,7 +217,7 @@ const TeacherDash = () => {
       </div>
 
       <div style={styles.mainGrid}>
-        {/* 🟡 SIDEBAR */}
+        {/* SIDEBAR */}
         <div style={styles.sidebar}>
           <p style={styles.menuLabel}>CLASSROOM</p>
           <NavBtn
@@ -197,9 +242,9 @@ const TeacherDash = () => {
           />
         </div>
 
-        {/* 🔵 CONTENT */}
+        {/* CONTENT */}
         <div style={styles.content}>
-          {/* 1️⃣ DASHBOARD TAB */}
+          {/* DASHBOARD TAB */}
           {activeTab === "dashboard" && (
             <>
               <div style={{ marginBottom: "20px" }}>
@@ -207,7 +252,7 @@ const TeacherDash = () => {
                   Welcome back, {teacher.name}! 👋
                 </h2>
                 <p style={{ color: "#7f8c8d" }}>
-                  Department: <b>Computer Science & Engineering</b>
+                  Subject: <b>{selectedSubject}</b>
                 </p>
               </div>
 
@@ -223,44 +268,16 @@ const TeacherDash = () => {
                   color="#2ecc71"
                 />
                 <StatCard
-                  title="Active Subject"
+                  title="Subject Type"
                   value={
-                    selectedSubject.split(" ").slice(0, 2).join(" ") + "..."
+                    isPracticalSubject ? "Practical + Theory" : "Theory Only"
                   }
-                  sub="Currently Selected"
+                  sub={selectedSubject.substring(0, 20) + "..."}
                   color="#9b59b6"
                 />
               </div>
 
               <div style={styles.sectionGrid}>
-                <div style={styles.card}>
-                  <h3>📅 Today's Classes</h3>
-                  <div style={styles.scheduleItem}>
-                    <div style={styles.timeBadge}>09:00 AM</div>
-                    <div>
-                      {/* Dynamic Subject Display */}
-                      <strong>{SUBJECT_LIST[1]}</strong>
-                      <p style={{ fontSize: "12px", color: "#666" }}>
-                        Lab 2, Block A
-                      </p>
-                    </div>
-                  </div>
-                  <div
-                    style={{
-                      ...styles.scheduleItem,
-                      borderLeft: "4px solid #f1c40f",
-                    }}
-                  >
-                    <div style={styles.timeBadge}>11:00 AM</div>
-                    <div>
-                      <strong>{SUBJECT_LIST[2]}</strong>
-                      <p style={{ fontSize: "12px", color: "#666" }}>
-                        Room 304, Block B
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
                 <div style={styles.card}>
                   <h3>📢 Quick Actions</h3>
                   <button
@@ -280,7 +297,7 @@ const TeacherDash = () => {
             </>
           )}
 
-          {/* 2️⃣ ATTENDANCE TAB */}
+          {/* ATTENDANCE TAB */}
           {activeTab === "attendance" && (
             <div style={styles.card}>
               <div style={styles.cardHeader}>
@@ -292,8 +309,6 @@ const TeacherDash = () => {
                     onChange={(e) => setSelectedDate(e.target.value)}
                     style={styles.input}
                   />
-
-                  {/* ✅ REAL SUBJECTS DROPDOWN */}
                   <select
                     value={selectedSubject}
                     onChange={(e) => setSelectedSubject(e.target.value)}
@@ -365,66 +380,153 @@ const TeacherDash = () => {
                   </div>
                 ))}
               </div>
-
               <button onClick={submitAttendance} style={styles.submitBtn}>
                 Save Attendance 💾
               </button>
             </div>
           )}
 
-          {/* 3️⃣ GRADEBOOK TAB */}
+          {/* GRADEBOOK TAB (UPDATED) */}
           {activeTab === "marks" && (
             <div style={styles.card}>
-              <h3>🎓 Gradebook: {selectedSubject}</h3>
-              <table style={styles.table}>
-                <thead>
-                  <tr style={styles.trHead}>
-                    <th>Student Name</th>
-                    <th>Roll No</th>
-                    <th>Mid Term (50)</th>
-                    <th>Final (100)</th>
-                    <th>Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {students.map((s) => (
-                    <tr key={s._id} style={styles.tr}>
-                      <td style={styles.td}>
-                        <b>{s.name}</b>
-                      </td>
-                      <td style={styles.td}>{s.roll || "N/A"}</td>
-                      <td style={styles.td}>
-                        <input
-                          type="number"
-                          placeholder="0"
-                          style={styles.markInput}
-                          value={marks[s._id]?.mid}
-                          onChange={(e) =>
-                            handleMarkChange(s._id, "mid", e.target.value)
-                          }
-                        />
-                      </td>
-                      <td style={styles.td}>
-                        <input
-                          type="number"
-                          placeholder="0"
-                          style={styles.markInput}
-                          value={marks[s._id]?.final}
-                          onChange={(e) =>
-                            handleMarkChange(s._id, "final", e.target.value)
-                          }
-                        />
-                      </td>
-                      <td style={styles.td}>
-                        <strong>
-                          {Number(marks[s._id]?.mid || 0) +
-                            Number(marks[s._id]?.final || 0)}
-                        </strong>
-                      </td>
-                    </tr>
+              <div style={styles.cardHeader}>
+                <h3>🎓 Gradebook: {selectedSubject}</h3>
+                {/* Subject Dropdown within Gradebook to switch context */}
+                <select
+                  value={selectedSubject}
+                  onChange={(e) => setSelectedSubject(e.target.value)}
+                  style={styles.select}
+                >
+                  {SUBJECT_LIST.map((sub, index) => (
+                    <option key={index} value={sub}>
+                      {sub}
+                    </option>
                   ))}
-                </tbody>
-              </table>
+                </select>
+              </div>
+
+              <div style={{ overflowX: "auto" }}>
+                <table style={styles.table}>
+                  <thead>
+                    <tr style={styles.trHead}>
+                      <th>Name</th>
+                      <th>Minor (20)</th>
+                      <th>Major (60)</th>
+                      <th>Assign (10)</th>
+                      <th>Quiz (10)</th>
+                      {/* Conditionally Render Practical Column */}
+                      {isPracticalSubject && (
+                        <th style={{ background: "#e8f6fd" }}>
+                          Practical (50)
+                        </th>
+                      )}
+                      <th>Total</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {students.map((s) => {
+                      const stats = getStudentStats(s._id);
+                      return (
+                        <tr key={s._id} style={styles.tr}>
+                          <td style={styles.td}>
+                            <b>{s.name}</b>
+                            <br />
+                            <small>{s.roll}</small>
+                          </td>
+
+                          {/* Theory Inputs */}
+                          <td style={styles.td}>
+                            <input
+                              type="number"
+                              placeholder="0"
+                              style={styles.markInput}
+                              value={marks[s._id]?.minor}
+                              onChange={(e) =>
+                                handleMarkChange(s._id, "minor", e.target.value)
+                              }
+                            />
+                          </td>
+                          <td style={styles.td}>
+                            <input
+                              type="number"
+                              placeholder="0"
+                              style={styles.markInput}
+                              value={marks[s._id]?.major}
+                              onChange={(e) =>
+                                handleMarkChange(s._id, "major", e.target.value)
+                              }
+                            />
+                          </td>
+                          <td style={styles.td}>
+                            <input
+                              type="number"
+                              placeholder="0"
+                              style={styles.markInput}
+                              value={marks[s._id]?.assign}
+                              onChange={(e) =>
+                                handleMarkChange(
+                                  s._id,
+                                  "assign",
+                                  e.target.value
+                                )
+                              }
+                            />
+                          </td>
+                          <td style={styles.td}>
+                            <input
+                              type="number"
+                              placeholder="0"
+                              style={styles.markInput}
+                              value={marks[s._id]?.quiz}
+                              onChange={(e) =>
+                                handleMarkChange(s._id, "quiz", e.target.value)
+                              }
+                            />
+                          </td>
+
+                          {/* Practical Input (Conditional) */}
+                          {isPracticalSubject && (
+                            <td style={{ ...styles.td, background: "#f4faff" }}>
+                              <input
+                                type="number"
+                                placeholder="0"
+                                style={{
+                                  ...styles.markInput,
+                                  borderColor: "#3498db",
+                                }}
+                                value={marks[s._id]?.practical}
+                                onChange={(e) =>
+                                  handleMarkChange(
+                                    s._id,
+                                    "practical",
+                                    e.target.value
+                                  )
+                                }
+                              />
+                            </td>
+                          )}
+
+                          {/* Calculated Results */}
+                          <td style={styles.td}>
+                            <strong>{stats.total}</strong> / {stats.maxMarks}
+                          </td>
+                          <td style={styles.td}>
+                            <span
+                              style={{
+                                ...styles.gradeBadge,
+                                background: stats.statusColor,
+                              }}
+                            >
+                              {stats.status}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
               <button
                 onClick={() => {
                   setMessage("✅ Marks Uploaded!");
@@ -438,7 +540,7 @@ const TeacherDash = () => {
             </div>
           )}
 
-          {/* 4️⃣ STUDENTS TAB */}
+          {/* STUDENTS TAB */}
           {activeTab === "students" && (
             <div style={styles.card}>
               <h3>👥 Enrolled Students</h3>
@@ -454,20 +556,7 @@ const TeacherDash = () => {
                 <tbody>
                   {students.map((s) => (
                     <tr key={s._id} style={styles.tr}>
-                      <td style={styles.td}>
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "10px",
-                          }}
-                        >
-                          <div style={styles.avatarSmall}>
-                            {s.name ? s.name.charAt(0) : "S"}
-                          </div>
-                          {s.name}
-                        </div>
-                      </td>
+                      <td style={styles.td}>{s.name}</td>
                       <td style={styles.td}>{s.email}</td>
                       <td style={styles.td}>{s.course || "N/A"}</td>
                       <td style={styles.td}>
@@ -485,7 +574,7 @@ const TeacherDash = () => {
   );
 };
 
-// 💎 COMPONENTS & STYLES
+// STYLES
 const NavBtn = ({ label, active, onClick }) => (
   <button
     style={active ? styles.menuBtnActive : styles.menuBtn}
@@ -633,24 +722,6 @@ const styles = {
     alignItems: "center",
     marginBottom: "20px",
   },
-  scheduleItem: {
-    display: "flex",
-    gap: "15px",
-    padding: "15px",
-    borderLeft: "4px solid #3498db",
-    background: "#f8f9fa",
-    marginBottom: "10px",
-    borderRadius: "0 8px 8px 0",
-  },
-  timeBadge: {
-    background: "#e8f6fd",
-    color: "#3498db",
-    padding: "5px 10px",
-    borderRadius: "5px",
-    fontSize: "12px",
-    fontWeight: "bold",
-    height: "fit-content",
-  },
   actionBtn: {
     display: "block",
     width: "100%",
@@ -767,22 +838,21 @@ const styles = {
   tr: { borderBottom: "1px solid #f1f2f6" },
   td: { padding: "12px", verticalAlign: "middle" },
   markInput: {
-    width: "60px",
+    width: "50px",
     padding: "5px",
     textAlign: "center",
     border: "1px solid #ddd",
     borderRadius: "4px",
   },
-  avatarSmall: {
-    width: "25px",
-    height: "25px",
-    borderRadius: "50%",
-    background: "#3498db",
+  gradeBadge: {
     color: "#fff",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    fontSize: "10px",
+    padding: "4px 10px",
+    borderRadius: "12px",
+    fontSize: "12px",
+    fontWeight: "bold",
+    minWidth: "70px",
+    display: "inline-block",
+    textAlign: "center",
   },
 };
 
