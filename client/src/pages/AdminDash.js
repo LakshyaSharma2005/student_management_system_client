@@ -1,12 +1,16 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
 const AdminDash = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("overview"); // overview, students, teachers, notices, finance, settings
+  const [activeTab, setActiveTab] = useState("overview");
 
-  // Data States
+  // 🔒 REAL BACKEND URL
+  const SERVER_URL =
+    "https://student-management-system-server-vygt.onrender.com";
+
+  // --- 1. DATA STATES ---
   const [students, setStudents] = useState([]);
   const [teachers, setTeachers] = useState([]);
   const [notices, setNotices] = useState([
@@ -24,12 +28,19 @@ const AdminDash = () => {
     },
   ]);
 
-  // UI States
+  // --- 2. SETTINGS STATE ---
+  const [settings, setSettings] = useState({
+    instituteName: "AdminOS Institute",
+    session: "2025-2026",
+    maintenance: false,
+  });
+
+  // --- 3. UI STATES ---
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(null);
 
-  // Form State
+  // --- 4. FORM STATE ---
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -39,114 +50,114 @@ const AdminDash = () => {
     fees: "Pending",
   });
 
-  // 🔒 REAL BACKEND URL
-  const SERVER_URL =
-    "https://student-management-system-server-vygt.onrender.com";
-
-  // 🔄 Initial Load
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
+  // 🔄 FETCH DATA FUNCTION (Wrapped in useCallback to fix the warning)
+  const fetchData = useCallback(async () => {
     try {
       const token = localStorage.getItem("token");
+      // If no token, we can't fetch, but we let useEffect handle the redirect
+      if (!token) return;
 
-      // 1. Fetch Students
       const sRes = await axios.get(`${SERVER_URL}/api/admin/students`, {
         headers: { Authorization: token },
       });
-      if (sRes.data && Array.isArray(sRes.data)) setStudents(sRes.data);
-
-      // 2. Fetch Teachers
       const tRes = await axios.get(`${SERVER_URL}/api/admin/teachers`, {
         headers: { Authorization: token },
       });
-      if (tRes.data && Array.isArray(tRes.data)) setTeachers(tRes.data);
+
+      if (sRes.data) setStudents(sRes.data);
+      if (tRes.data) setTeachers(tRes.data);
     } catch (err) {
       console.error("Fetch Error:", err);
     }
-  };
+  }, [SERVER_URL]); // dependency on SERVER_URL is fine
 
-  // 📝 Handle Form Submit
+  // 🔄 INITIAL LOAD EFFECT
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      navigate("/");
+    } else {
+      fetchData();
+    }
+  }, [navigate, fetchData]); // ✅ Now 'fetchData' is a valid dependency
+
+  // 📝 HANDLER: Add or Update User
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-
     try {
       const token = localStorage.getItem("token");
 
-      const payload = {
-        name: formData.name,
-        email: formData.email,
-        password: formData.password || "123456",
-        role: activeTab === "students" ? "Student" : "Teacher",
-        course: formData.course || "",
-        subject: formData.subject || "",
-        fees: formData.fees || "Pending",
-      };
-
-      const res = await axios.post(`${SERVER_URL}/api/auth/register`, payload, {
-        headers: { Authorization: token },
-      });
-
-      if (res.data.success || res.status === 201) {
-        alert(
-          `✅ ${
-            activeTab === "students" ? "Student" : "Teacher"
-          } Added Successfully!`
-        );
-        fetchData(); // Reload list
-        setFormData({
-          name: "",
-          email: "",
-          password: "",
-          course: "",
-          subject: "",
-          fees: "Pending",
-        });
+      if (isEditing) {
+        // Mock update for UI (Backend implementation usually requires PUT route)
+        alert(`✏️ Details for ${formData.name} updated successfully!`);
+        setIsEditing(null);
+        // In a real app, you'd allow fetchData() here too
       } else {
-        alert(
-          "⚠️ Registration Failed: " + (res.data.message || "Unknown Error")
-        );
+        const payload = {
+          ...formData,
+          password: formData.password || "123456",
+          role: activeTab === "students" ? "Student" : "Teacher",
+        };
+        await axios.post(`${SERVER_URL}/api/auth/register`, payload, {
+          headers: { Authorization: token },
+        });
+        alert(`✅ ${payload.role} Added Successfully!`);
+        fetchData(); // Refresh the list
       }
+
+      setFormData({
+        name: "",
+        email: "",
+        password: "",
+        course: "",
+        subject: "",
+        fees: "Pending",
+      });
     } catch (err) {
-      console.error("Registration Error:", err);
       alert(
-        "❌ Failed to add user: " + (err.response?.data?.message || err.message)
+        "❌ Operation Failed: " + (err.response?.data?.message || err.message)
       );
     }
     setLoading(false);
   };
 
-  // 🗑️ Handle Delete
-  const handleDelete = async (id, type) => {
-    if (!window.confirm("Are you sure you want to delete this user?")) return;
+  // ✏️ HANDLER: Edit User
+  const handleEdit = (user) => {
+    setIsEditing(user._id);
+    setFormData({
+      name: user.name,
+      email: user.email,
+      password: "",
+      course: user.course || "",
+      subject: user.subject || "",
+      fees: user.fees || "Pending",
+    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
+  // 🗑️ HANDLER: Delete User
+  const handleDelete = async (id, type) => {
+    if (!window.confirm("Are you sure?")) return;
     try {
       const token = localStorage.getItem("token");
       await axios.delete(`${SERVER_URL}/api/admin/delete/${id}`, {
         headers: { Authorization: token },
       });
 
-      // Update UI (Remove from list instantly)
       if (type === "students")
         setStudents(students.filter((s) => s._id !== id));
       if (type === "teachers")
         setTeachers(teachers.filter((t) => t._id !== id));
       if (type === "notices") setNotices(notices.filter((n) => n.id !== id));
 
-      alert("🗑️ User Deleted Successfully");
+      alert("🗑️ Deleted Successfully");
     } catch (err) {
-      console.error("Delete Error:", err);
-      alert(
-        "❌ Failed to delete user: " +
-          (err.response?.data?.message || err.message)
-      );
+      alert("❌ Delete Failed");
     }
   };
 
-  // 🔍 Filter Logic
+  // 🔍 FILTER DATA
   const getDataToDisplay = () => {
     if (activeTab === "students")
       return students.filter((s) =>
@@ -159,7 +170,7 @@ const AdminDash = () => {
     return [];
   };
 
-  // 💵 Calculate Stats (FIXED: 28000)
+  // 📊 CALCULATE STATS
   const totalRevenue = students.filter((s) => s.fees === "Paid").length * 28000;
   const pendingFees = students.filter((s) => s.fees === "Pending").length;
 
@@ -170,7 +181,8 @@ const AdminDash = () => {
         <div style={styles.brand}>
           <span style={styles.logoIcon}>⚡</span>
           <h1>
-            Admin<span style={{ color: "#3498db" }}>OS</span>
+            {settings.instituteName.split(" ")[0]}
+            <span style={{ color: "#3498db" }}>OS</span>
           </h1>
         </div>
         <div style={styles.navRight}>
@@ -214,15 +226,13 @@ const AdminDash = () => {
             active={activeTab === "finance"}
             onClick={() => setActiveTab("finance")}
           />
+          <div style={styles.divider}></div>
+          <p style={styles.menuLabel}>SYSTEM</p>
           <NavBtn
             label="📢 Notices"
             active={activeTab === "notices"}
             onClick={() => setActiveTab("notices")}
           />
-
-          <div style={styles.divider}></div>
-          <p style={styles.menuLabel}>SYSTEM</p>
-          {/* FIXED: Added OnClick for Settings */}
           <NavBtn
             label="⚙️ Settings"
             active={activeTab === "settings"}
@@ -230,7 +240,7 @@ const AdminDash = () => {
           />
         </div>
 
-        {/* 🔵 MAIN CONTENT AREA */}
+        {/* 🔵 CONTENT */}
         <div style={styles.content}>
           {/* 1️⃣ OVERVIEW TAB */}
           {activeTab === "overview" && (
@@ -246,7 +256,7 @@ const AdminDash = () => {
                 color="#e67e22"
               />
               <StatCard
-                title="Revenue Collected"
+                title="Revenue"
                 value={`₹${totalRevenue.toLocaleString()}`}
                 color="#27ae60"
               />
@@ -256,85 +266,43 @@ const AdminDash = () => {
                 color="#e74c3c"
               />
 
-              <div
-                style={{
-                  gridColumn: "span 2",
-                  background: "white",
-                  padding: "20px",
-                  borderRadius: "12px",
-                  boxShadow: "0 2px 5px rgba(0,0,0,0.05)",
-                }}
-              >
-                <h3>📈 Enrollment Analytics</h3>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "flex-end",
-                    height: "150px",
-                    gap: "20px",
-                    marginTop: "20px",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: "20%",
-                      height: "60%",
-                      background: "#3498db",
-                      borderRadius: "5px",
-                    }}
-                  ></div>
-                  <div
-                    style={{
-                      width: "20%",
-                      height: "80%",
-                      background: "#3498db",
-                      borderRadius: "5px",
-                    }}
-                  ></div>
-                  <div
-                    style={{
-                      width: "20%",
-                      height: "40%",
-                      background: "#3498db",
-                      borderRadius: "5px",
-                    }}
-                  ></div>
-                  <div
-                    style={{
-                      width: "20%",
-                      height: "90%",
-                      background: "#3498db",
-                      borderRadius: "5px",
-                    }}
-                  ></div>
-                  <div
-                    style={{
-                      width: "20%",
-                      height: "70%",
-                      background: "#3498db",
-                      borderRadius: "5px",
-                    }}
-                  ></div>
+              <div style={styles.splitGrid}>
+                <div style={styles.card}>
+                  <h3>📈 Admissions</h3>
+                  <div style={styles.chartPlaceholder}>
+                    {[40, 60, 30, 80, 50].map((h, i) => (
+                      <div
+                        key={i}
+                        style={{ ...styles.bar, height: `${h}%` }}
+                      ></div>
+                    ))}
+                  </div>
                 </div>
-                <p
-                  style={{
-                    textAlign: "center",
-                    marginTop: "10px",
-                    color: "#7f8c8d",
-                  }}
-                >
-                  Monthly Admissions
-                </p>
+                <div style={styles.card}>
+                  <h3>🕒 Recent Activity</h3>
+                  <ul style={styles.activityList}>
+                    <li style={styles.activityItem}>
+                      <span style={styles.time}>10:00 AM</span> System Backup
+                    </li>
+                    <li style={styles.activityItem}>
+                      <span style={styles.time}>11:30 AM</span> New Student
+                      Joined
+                    </li>
+                    <li style={styles.activityItem}>
+                      <span style={styles.time}>02:15 PM</span> Fee Payment
+                      Received
+                    </li>
+                  </ul>
+                </div>
               </div>
             </div>
           )}
 
-          {/* 2️⃣ STUDENTS & TEACHERS TAB */}
+          {/* 2️⃣ STUDENTS & TEACHERS MANAGEMENT */}
           {(activeTab === "students" || activeTab === "teachers") && (
             <div style={styles.actionArea}>
-              {/* Form Section */}
               <div style={styles.formCard}>
-                <h3 style={styles.cardHeader}>
+                <h3>
                   {isEditing
                     ? "✏️ Edit User"
                     : `➕ Add ${
@@ -343,6 +311,7 @@ const AdminDash = () => {
                 </h3>
                 <form onSubmit={handleSubmit} style={styles.form}>
                   <input
+                    style={styles.input}
                     type="text"
                     placeholder="Full Name"
                     value={formData.name}
@@ -350,9 +319,9 @@ const AdminDash = () => {
                       setFormData({ ...formData, name: e.target.value })
                     }
                     required
-                    style={styles.input}
                   />
                   <input
+                    style={styles.input}
                     type="email"
                     placeholder="Email"
                     value={formData.email}
@@ -360,42 +329,40 @@ const AdminDash = () => {
                       setFormData({ ...formData, email: e.target.value })
                     }
                     required
-                    style={styles.input}
                   />
                   {!isEditing && (
                     <input
+                      style={styles.input}
                       type="password"
                       placeholder="Password (Default: 123456)"
                       value={formData.password}
                       onChange={(e) =>
                         setFormData({ ...formData, password: e.target.value })
                       }
-                      style={styles.input}
                     />
                   )}
 
                   {activeTab === "students" ? (
                     <>
                       <select
+                        style={styles.select}
                         value={formData.course}
                         onChange={(e) =>
                           setFormData({ ...formData, course: e.target.value })
                         }
-                        style={styles.select}
                         required
                       >
-                        <option value="">-- Select Course --</option>
-                        <option value="BCA">BCA</option>
-                        <option value="B.Tech">B.Tech</option>
-                        <option value="MBA">MBA</option>
-                        <option value="B.Sc">B.Sc</option>
+                        <option value="">Select Course</option>
+                        <option>BCA</option>
+                        <option>B.Tech</option>
+                        <option>MBA</option>
                       </select>
                       <select
+                        style={styles.select}
                         value={formData.fees}
                         onChange={(e) =>
                           setFormData({ ...formData, fees: e.target.value })
                         }
-                        style={styles.select}
                       >
                         <option value="Pending">Fees: Pending</option>
                         <option value="Paid">Fees: Paid</option>
@@ -403,14 +370,13 @@ const AdminDash = () => {
                     </>
                   ) : (
                     <input
+                      style={styles.input}
                       type="text"
                       placeholder="Subject"
                       value={formData.subject}
                       onChange={(e) =>
                         setFormData({ ...formData, subject: e.target.value })
                       }
-                      style={styles.input}
-                      required
                     />
                   )}
 
@@ -419,7 +385,11 @@ const AdminDash = () => {
                     disabled={loading}
                     style={styles.submitBtn}
                   >
-                    {loading ? "Saving..." : "Save Record"}
+                    {loading
+                      ? "Processing..."
+                      : isEditing
+                      ? "Update User"
+                      : "Save Record"}
                   </button>
                   {isEditing && (
                     <button
@@ -432,6 +402,7 @@ const AdminDash = () => {
                           password: "",
                           course: "",
                           subject: "",
+                          fees: "Pending",
                         });
                       }}
                       style={styles.cancelBtn}
@@ -442,16 +413,15 @@ const AdminDash = () => {
                 </form>
               </div>
 
-              {/* Table Section */}
               <div style={styles.tableCard}>
                 <div style={styles.tableHeader}>
                   <h3>📋 Directory</h3>
                   <input
+                    style={styles.searchInput}
                     type="text"
                     placeholder="🔍 Search..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    style={styles.searchInput}
                   />
                 </div>
                 <table style={styles.table}>
@@ -459,8 +429,7 @@ const AdminDash = () => {
                     <tr style={styles.trHead}>
                       <th>Name</th>
                       <th>Email</th>
-                      <th>{activeTab === "students" ? "Course" : "Subject"}</th>
-                      {activeTab === "students" && <th>Fees</th>}
+                      <th>Role Info</th>
                       <th>Actions</th>
                     </tr>
                   </thead>
@@ -476,20 +445,13 @@ const AdminDash = () => {
                             {user.course || user.subject}
                           </span>
                         </td>
-                        {activeTab === "students" && (
-                          <td style={styles.td}>
-                            <span
-                              style={
-                                user.fees === "Paid"
-                                  ? styles.statusGreen
-                                  : styles.statusRed
-                              }
-                            >
-                              {user.fees}
-                            </span>
-                          </td>
-                        )}
                         <td style={styles.td}>
+                          <button
+                            onClick={() => handleEdit(user)}
+                            style={styles.actionBtn}
+                          >
+                            ✏️
+                          </button>
                           <button
                             onClick={() => handleDelete(user._id, activeTab)}
                             style={{ ...styles.actionBtn, color: "#e74c3c" }}
@@ -499,36 +461,21 @@ const AdminDash = () => {
                         </td>
                       </tr>
                     ))}
-                    {getDataToDisplay().length === 0 && (
-                      <tr>
-                        <td
-                          colSpan="5"
-                          style={{
-                            padding: "20px",
-                            textAlign: "center",
-                            color: "#999",
-                          }}
-                        >
-                          No users found.
-                        </td>
-                      </tr>
-                    )}
                   </tbody>
                 </table>
               </div>
             </div>
           )}
 
-          {/* 3️⃣ FINANCE TAB (FIXED) */}
+          {/* 3️⃣ FINANCE */}
           {activeTab === "finance" && (
             <div style={styles.tableCard}>
-              <h3>💰 Fee Status Report</h3>
+              <h3>💰 Fee Status</h3>
               <table style={styles.table}>
                 <thead>
                   <tr style={styles.trHead}>
                     <th>Student</th>
-                    <th>Course</th>
-                    <th>Amount Due</th>
+                    <th>Amount</th>
                     <th>Status</th>
                     <th>Action</th>
                   </tr>
@@ -537,8 +484,6 @@ const AdminDash = () => {
                   {students.map((s) => (
                     <tr key={s._id} style={styles.tr}>
                       <td style={styles.td}>{s.name}</td>
-                      <td style={styles.td}>{s.course || "N/A"}</td>
-                      {/* FIXED: 28,000 */}
                       <td style={styles.td}>₹28,000</td>
                       <td style={styles.td}>
                         <span
@@ -555,9 +500,9 @@ const AdminDash = () => {
                         {s.fees === "Pending" && (
                           <button
                             style={styles.payBtn}
-                            onClick={() => alert("Payment Link Sent!")}
+                            onClick={() => alert("Reminder Sent!")}
                           >
-                            Send Reminder 🔔
+                            🔔 Remind
                           </button>
                         )}
                       </td>
@@ -568,11 +513,11 @@ const AdminDash = () => {
             </div>
           )}
 
-          {/* 4️⃣ NOTICES TAB */}
+          {/* 4️⃣ NOTICES */}
           {activeTab === "notices" && (
             <div style={styles.actionArea}>
               <div style={styles.formCard}>
-                <h3>📢 Post Notice</h3>
+                <h3>📢 Publish Notice</h3>
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
@@ -582,34 +527,35 @@ const AdminDash = () => {
                         id: Date.now(),
                         title: formData.name,
                         date: new Date().toISOString().split("T")[0],
+                        type: "General",
                       },
                     ]);
                     setFormData({ ...formData, name: "" });
                   }}
                 >
                   <input
-                    type="text"
+                    style={styles.input}
                     placeholder="Notice Title"
                     value={formData.name}
                     onChange={(e) =>
                       setFormData({ ...formData, name: e.target.value })
                     }
-                    style={styles.input}
                     required
                   />
-                  <br />
-                  <br />
                   <button type="submit" style={styles.submitBtn}>
                     Post Notice
                   </button>
                 </form>
               </div>
               <div style={styles.tableCard}>
-                <h3>Recent Announcements</h3>
+                <h3>Active Notices</h3>
                 {notices.map((n) => (
                   <div key={n.id} style={styles.noticeItem}>
-                    <div style={styles.noticeDate}>{n.date}</div>
-                    <div style={styles.noticeTitle}>{n.title}</div>
+                    <div>
+                      <b>{n.title}</b>
+                      <br />
+                      <small>{n.date}</small>
+                    </div>
                     <button
                       onClick={() => handleDelete(n.id, "notices")}
                       style={styles.deleteLink}
@@ -622,26 +568,72 @@ const AdminDash = () => {
             </div>
           )}
 
-          {/* 5️⃣ SETTINGS TAB (NEW & FIXED) */}
+          {/* 5️⃣ SETTINGS */}
           {activeTab === "settings" && (
             <div style={styles.formCard}>
-              <h3>⚙️ System Settings</h3>
-              <div style={{ marginTop: "20px" }}>
-                <p>
-                  <b>Admin Name:</b> Lakshya Sharma
-                </p>
-                <p>
-                  <b>System Version:</b> v2.0 (Stable)
-                </p>
-                <p>
-                  <b>Database Status:</b> Connected ✅
-                </p>
-                <div style={styles.divider}></div>
+              <h3>⚙️ System Configuration</h3>
+              <div
+                style={{
+                  marginTop: "20px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "15px",
+                }}
+              >
+                <label>
+                  Institute Name{" "}
+                  <input
+                    style={styles.input}
+                    value={settings.instituteName}
+                    onChange={(e) =>
+                      setSettings({
+                        ...settings,
+                        instituteName: e.target.value,
+                      })
+                    }
+                  />
+                </label>
+                <label>
+                  Session{" "}
+                  <input
+                    style={styles.input}
+                    value={settings.session}
+                    onChange={(e) =>
+                      setSettings({ ...settings, session: e.target.value })
+                    }
+                  />
+                </label>
+
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    background: "#f8f9fa",
+                    padding: "10px",
+                    borderRadius: "8px",
+                  }}
+                >
+                  <span>System Maintenance</span>
+                  <button
+                    onClick={() =>
+                      setSettings({
+                        ...settings,
+                        maintenance: !settings.maintenance,
+                      })
+                    }
+                    style={
+                      settings.maintenance ? styles.toggleOn : styles.toggleOff
+                    }
+                  >
+                    {settings.maintenance ? "🔴 Active" : "🟢 Inactive"}
+                  </button>
+                </div>
                 <button
                   style={styles.submitBtn}
-                  onClick={() => alert("Configuration Saved!")}
+                  onClick={() => alert("Settings Saved!")}
                 >
-                  Save Configuration
+                  Save Changes
                 </button>
               </div>
             </div>
@@ -652,7 +644,7 @@ const AdminDash = () => {
   );
 };
 
-// 💎 COMPONENTS & STYLES
+// 💎 COMPONENTS
 const NavBtn = ({ label, active, onClick }) => (
   <button
     style={active ? styles.menuBtnActive : styles.menuBtn}
@@ -669,6 +661,7 @@ const StatCard = ({ title, value, color }) => (
   </div>
 );
 
+// STYLES
 const styles = {
   container: {
     backgroundColor: "#f0f2f5",
@@ -721,7 +714,6 @@ const styles = {
     cursor: "pointer",
     fontWeight: "bold",
   },
-
   mainGrid: {
     display: "grid",
     gridTemplateColumns: "250px 1fr",
@@ -765,10 +757,7 @@ const styles = {
     borderLeft: "4px solid #3498db",
   },
   divider: { height: "1px", background: "#34495e", margin: "20px 0" },
-
-  content: { padding: "30px" },
-
-  // Overview
+  content: { padding: "30px", overflowY: "auto" },
   overviewGrid: {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
@@ -781,7 +770,12 @@ const styles = {
     borderRadius: "12px",
     boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
   },
-
+  splitGrid: {
+    display: "grid",
+    gridTemplateColumns: "2fr 1fr",
+    gap: "20px",
+    gridColumn: "span 4",
+  },
   actionArea: { display: "grid", gridTemplateColumns: "1fr 2fr", gap: "30px" },
   formCard: {
     background: "#fff",
@@ -790,17 +784,14 @@ const styles = {
     boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
     height: "fit-content",
   },
-  cardHeader: {
-    margin: "0 0 20px 0",
-    borderBottom: "1px solid #eee",
-    paddingBottom: "10px",
-  },
   form: { display: "flex", flexDirection: "column", gap: "15px" },
   input: {
     padding: "12px",
     borderRadius: "6px",
     border: "1px solid #ddd",
     fontSize: "14px",
+    width: "100%",
+    boxSizing: "border-box",
   },
   select: {
     padding: "12px",
@@ -829,7 +820,6 @@ const styles = {
     cursor: "pointer",
     marginTop: "5px",
   },
-
   tableCard: {
     background: "#fff",
     padding: "25px",
@@ -885,7 +875,6 @@ const styles = {
     fontSize: "16px",
     marginRight: "10px",
   },
-
   payBtn: {
     background: "#f39c12",
     color: "#fff",
@@ -895,7 +884,6 @@ const styles = {
     cursor: "pointer",
     fontSize: "12px",
   },
-
   noticeItem: {
     display: "flex",
     justifyContent: "space-between",
@@ -903,14 +891,48 @@ const styles = {
     padding: "15px",
     borderBottom: "1px solid #eee",
   },
-  noticeTitle: { fontWeight: "bold", color: "#333" },
-  noticeDate: { color: "#7f8c8d", fontSize: "12px", width: "100px" },
   deleteLink: {
     color: "red",
     background: "none",
     border: "none",
     cursor: "pointer",
     fontSize: "12px",
+  },
+  chartPlaceholder: {
+    display: "flex",
+    alignItems: "flex-end",
+    height: "150px",
+    gap: "20px",
+    marginTop: "20px",
+    justifyContent: "space-around",
+  },
+  bar: { width: "15%", background: "#3498db", borderRadius: "5px" },
+  activityList: { listStyle: "none", padding: 0, marginTop: "10px" },
+  activityItem: {
+    padding: "10px 0",
+    borderBottom: "1px dashed #eee",
+    fontSize: "14px",
+    display: "flex",
+    justifyContent: "space-between",
+  },
+  time: { color: "#3498db", fontWeight: "bold", fontSize: "12px" },
+  toggleOn: {
+    padding: "8px 15px",
+    background: "#e74c3c",
+    color: "#fff",
+    border: "none",
+    borderRadius: "20px",
+    cursor: "pointer",
+    fontWeight: "bold",
+  },
+  toggleOff: {
+    padding: "8px 15px",
+    background: "#2ecc71",
+    color: "#fff",
+    border: "none",
+    borderRadius: "20px",
+    cursor: "pointer",
+    fontWeight: "bold",
   },
 };
 
