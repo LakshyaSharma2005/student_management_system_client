@@ -45,12 +45,15 @@ const COURSE_OPTIONS = [
 const AdminDash = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("overview");
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+  // RESPONSIVE STATES (Auto-collapse on smaller screens)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 900);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 900);
 
   const SERVER_URL =
     "https://student-management-system-server-vygt.onrender.com";
 
-  // --- STATES ---
+  // --- DATA STATES ---
   const [students, setStudents] = useState([]);
   const [teachers, setTeachers] = useState([]);
   const [notices, setNotices] = useState([
@@ -65,12 +68,6 @@ const AdminDash = () => {
       title: "Winter Vacation & Campus Closure",
       date: "2025-12-18",
       type: "General",
-    },
-    {
-      id: 3,
-      title: "Faculty Meeting: Curriculum Review",
-      date: "2025-12-22",
-      type: "Meeting",
     },
   ]);
 
@@ -92,6 +89,18 @@ const AdminDash = () => {
     subject: "",
     fees: "Pending",
   });
+
+  // 🔄 RESIZE HANDLER
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth < 900;
+      setIsMobile(mobile);
+      if (!mobile) setIsSidebarOpen(true);
+      else setIsSidebarOpen(false);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   // 🔄 FETCH DATA
   const fetchData = useCallback(async () => {
@@ -171,8 +180,7 @@ const AdminDash = () => {
   };
 
   const handleDelete = async (id, type) => {
-    if (!window.confirm("Confirm deletion? This action is irreversible."))
-      return;
+    if (!window.confirm("Confirm deletion?")) return;
     try {
       const token = localStorage.getItem("token");
       await axios.delete(`${SERVER_URL}/api/admin/delete/${id}`, {
@@ -201,15 +209,14 @@ const AdminDash = () => {
 
   return (
     <div style={styles.container}>
-      {/* 🌑 SIDEBAR */}
+      {/* 🌑 SIDEBAR (FIXED LAYOUT) */}
       <div
         style={{
           ...styles.sidebar,
-          width: isSidebarOpen ? "280px" : "0px",
-          padding: isSidebarOpen ? "24px" : "0px",
-          opacity: isSidebarOpen ? 1 : 0,
+          transform: isSidebarOpen ? "translateX(0)" : "translateX(-100%)",
         }}
       >
+        {/* 1. Header (Logo) - Fixed at top */}
         <div style={styles.logoContainer}>
           <div style={styles.logoIcon}>⚡</div>
           <h2 style={styles.logoText}>
@@ -217,7 +224,7 @@ const AdminDash = () => {
           </h2>
         </div>
 
-        {/* 📜 SCROLLABLE MENU SECTION (Fixes Button Cutoff) */}
+        {/* 2. Menu (Scrollable) - Takes remaining space */}
         <div style={styles.scrollableMenu}>
           <div style={styles.menuGroup}>
             <p style={styles.menuLabel}>DASHBOARD</p>
@@ -225,13 +232,19 @@ const AdminDash = () => {
               icon="📊"
               label="Overview"
               active={activeTab === "overview"}
-              onClick={() => setActiveTab("overview")}
+              onClick={() => {
+                setActiveTab("overview");
+                if (isMobile) setIsSidebarOpen(false);
+              }}
             />
             <NavBtn
               icon="📢"
               label="Announcements"
               active={activeTab === "notices"}
-              onClick={() => setActiveTab("notices")}
+              onClick={() => {
+                setActiveTab("notices");
+                if (isMobile) setIsSidebarOpen(false);
+              }}
             />
           </div>
 
@@ -241,19 +254,28 @@ const AdminDash = () => {
               icon="👨‍🎓"
               label="Students"
               active={activeTab === "students"}
-              onClick={() => setActiveTab("students")}
+              onClick={() => {
+                setActiveTab("students");
+                if (isMobile) setIsSidebarOpen(false);
+              }}
             />
             <NavBtn
               icon="👨‍🏫"
               label="Faculty"
               active={activeTab === "teachers"}
-              onClick={() => setActiveTab("teachers")}
+              onClick={() => {
+                setActiveTab("teachers");
+                if (isMobile) setIsSidebarOpen(false);
+              }}
             />
             <NavBtn
               icon="💳"
               label="Finance"
               active={activeTab === "finance"}
-              onClick={() => setActiveTab("finance")}
+              onClick={() => {
+                setActiveTab("finance");
+                if (isMobile) setIsSidebarOpen(false);
+              }}
             />
           </div>
 
@@ -263,28 +285,41 @@ const AdminDash = () => {
               icon="⚙️"
               label="Settings"
               active={activeTab === "settings"}
-              onClick={() => setActiveTab("settings")}
+              onClick={() => {
+                setActiveTab("settings");
+                if (isMobile) setIsSidebarOpen(false);
+              }}
             />
           </div>
         </div>
 
-        {/* 🚪 FIXED BOTTOM BUTTON */}
-        <button
-          onClick={() => {
-            localStorage.removeItem("token");
-            navigate("/");
-          }}
-          style={styles.logoutBtn}
-        >
-          ↪ Sign Out
-        </button>
+        {/* 3. Footer (Sign Out) - Fixed at bottom */}
+        <div style={styles.sidebarFooter}>
+          <button
+            onClick={() => {
+              localStorage.removeItem("token");
+              navigate("/");
+            }}
+            style={styles.logoutBtn}
+          >
+            ↪ Sign Out
+          </button>
+        </div>
       </div>
+
+      {/* 🌑 MOBILE OVERLAY */}
+      {isMobile && isSidebarOpen && (
+        <div
+          onClick={() => setIsSidebarOpen(false)}
+          style={styles.mobileOverlay}
+        ></div>
+      )}
 
       {/* ⚪ MAIN CONTENT */}
       <div
         style={{
           ...styles.content,
-          marginLeft: isSidebarOpen ? "280px" : "0px", // 🟢 Pushes Content Correctly
+          marginLeft: !isMobile && isSidebarOpen ? "280px" : "0", // Correct margin logic
         }}
       >
         {/* TOP HEADER */}
@@ -307,20 +342,18 @@ const AdminDash = () => {
               <input
                 placeholder="Search records..."
                 style={styles.headerSearch}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <div style={styles.iconBtn}>🔔</div>
             <div style={styles.profileBadge}>
-              <div style={styles.avatar}>AD</div>
-              <div style={{ display: "flex", flexDirection: "column" }}>
-                <span style={styles.profileName}>Admin User</span>
-                <span style={styles.profileRole}>Super Admin</span>
-              </div>
+              <div style={styles.avatar}>A</div>
+              {!isMobile && <span style={styles.profileName}>Admin</span>}
             </div>
           </div>
         </div>
 
-        {/* 1️⃣ OVERVIEW TAB */}
+        {/* 1️⃣ OVERVIEW */}
         {activeTab === "overview" && (
           <div style={styles.fadeProps}>
             <div style={styles.statGrid}>
@@ -336,27 +369,24 @@ const AdminDash = () => {
                 value={teachers.length}
                 icon="👨‍🏫"
                 color="#10b981"
-                trend="Stable"
               />
               <StatCard
                 title="Total Revenue"
                 value={`₹${(totalRevenue / 1000).toFixed(1)}k`}
                 icon="💰"
                 color="#8b5cf6"
-                trend="+5% vs last mo"
               />
               <StatCard
                 title="Pending Dues"
                 value={pendingFees}
                 icon="⚠️"
                 color="#ef4444"
-                trend="Action Required"
               />
             </div>
 
             <div style={styles.splitGrid}>
               <div style={styles.card}>
-                <h3 style={styles.cardTitle}>📈 Enrollment Trends</h3>
+                <h3 style={styles.cardTitle}>📈 Enrollment</h3>
                 <div style={styles.chartContainer}>
                   {[45, 72, 58, 90, 65, 80, 55].map((h, i) => (
                     <div key={i} style={styles.barWrapper}>
@@ -370,31 +400,25 @@ const AdminDash = () => {
               </div>
 
               <div style={styles.card}>
-                <h3 style={styles.cardTitle}>🕒 System Audit Log</h3>
+                <h3 style={styles.cardTitle}>🕒 Activity Log</h3>
                 <div style={styles.timeline}>
                   <TimelineItem
                     time="10:42 AM"
-                    title="New Student Registration"
-                    desc="Gaurav Gochar enrolled in BCA (DS)"
+                    title="New Student"
+                    desc="Gaurav Gochar enrolled"
                     color="#3b82f6"
                   />
                   <TimelineItem
                     time="11:15 AM"
-                    title="Fee Payment Received"
-                    desc="₹28,000 processed via Gateway"
+                    title="Fee Received"
+                    desc="₹28,000 processed"
                     color="#10b981"
                   />
                   <TimelineItem
                     time="01:30 PM"
                     title="System Backup"
-                    desc="Automated backup completed successfully"
+                    desc="Backup completed"
                     color="#64748b"
-                  />
-                  <TimelineItem
-                    time="03:45 PM"
-                    title="Notice Published"
-                    desc="'Winter Vacation' posted to portal"
-                    color="#f59e0b"
                   />
                 </div>
               </div>
@@ -404,24 +428,13 @@ const AdminDash = () => {
 
         {/* 2️⃣ STUDENTS & TEACHERS */}
         {(activeTab === "students" || activeTab === "teachers") && (
-          <div
-            style={{
-              ...styles.fadeProps,
-              display: "flex",
-              gap: "20px",
-              alignItems: "start",
-              flexDirection: "column",
-            }}
-          >
+          <div style={styles.responsiveRow}>
+            {/* FORM */}
             <div style={styles.formCard}>
               <h3 style={styles.cardTitle}>
-                {isEditing
-                  ? "✏️ Edit Record"
-                  : `➕ Add ${
-                      activeTab === "students" ? "Student" : "Faculty"
-                    }`}
+                {isEditing ? "✏️ Edit" : "➕ Add New"}
               </h3>
-              <form onSubmit={handleSubmit} style={styles.formHorizontal}>
+              <form onSubmit={handleSubmit} style={styles.form}>
                 <input
                   style={styles.input}
                   type="text"
@@ -446,7 +459,7 @@ const AdminDash = () => {
                   <input
                     style={styles.input}
                     type="password"
-                    placeholder="Password (Default: 123456)"
+                    placeholder="Pass: 123456"
                     value={formData.password}
                     onChange={(e) =>
                       setFormData({ ...formData, password: e.target.value })
@@ -464,7 +477,7 @@ const AdminDash = () => {
                       }
                       required
                     >
-                      <option value="">Select Specialization...</option>
+                      <option value="">Select Course...</option>
                       {COURSE_OPTIONS.map((c, i) => (
                         <option key={i} value={c}>
                           {c}
@@ -478,8 +491,8 @@ const AdminDash = () => {
                         setFormData({ ...formData, fees: e.target.value })
                       }
                     >
-                      <option value="Pending">Fees: Pending</option>
-                      <option value="Paid">Fees: Paid</option>
+                      <option value="Pending">Pending</option>
+                      <option value="Paid">Paid</option>
                     </select>
                   </>
                 ) : (
@@ -494,13 +507,13 @@ const AdminDash = () => {
                   />
                 )}
 
-                <div style={{ display: "flex", gap: "10px" }}>
+                <div style={styles.formActions}>
                   <button
                     type="submit"
                     disabled={loading}
                     style={styles.primaryBtn}
                   >
-                    {loading ? "Processing..." : isEditing ? "Update" : "Save"}
+                    {loading ? "..." : "Save"}
                   </button>
                   {isEditing && (
                     <button
@@ -525,40 +538,26 @@ const AdminDash = () => {
               </form>
             </div>
 
+            {/* TABLE */}
             <div style={styles.tableCard}>
-              <div style={styles.tableHeader}>
-                <h3 style={styles.cardTitle}>Directory</h3>
-                <input
-                  style={styles.searchInput}
-                  type="text"
-                  placeholder="Search by name..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
               <div style={styles.tableWrapper}>
                 <table style={styles.table}>
                   <thead>
                     <tr style={styles.trHead}>
                       <th>Name</th>
-                      <th>Email</th>
-                      <th>{activeTab === "students" ? "Course" : "Subject"}</th>
+                      {!isMobile && <th>Email</th>}
+                      <th>Details</th>
                       {activeTab === "students" && <th>Fees</th>}
-                      <th>Actions</th>
+                      <th>Act</th>
                     </tr>
                   </thead>
                   <tbody>
                     {getDataToDisplay().map((user) => (
                       <tr key={user._id} style={styles.tr}>
                         <td style={styles.td}>
-                          <div style={styles.userCell}>
-                            <div style={styles.userAvatar}>
-                              {user.name.charAt(0)}
-                            </div>
-                            <span style={styles.userName}>{user.name}</span>
-                          </div>
+                          <b>{user.name}</b>
                         </td>
-                        <td style={styles.td}>{user.email}</td>
+                        {!isMobile && <td style={styles.td}>{user.email}</td>}
                         <td style={styles.td}>
                           <span style={styles.badge}>
                             {user.course || user.subject || "N/A"}
@@ -578,20 +577,20 @@ const AdminDash = () => {
                           </td>
                         )}
                         <td style={styles.td}>
-                          <button
-                            onClick={() => handleEdit(user)}
-                            style={styles.iconAction}
-                            title="Edit"
-                          >
-                            ✏️
-                          </button>
-                          <button
-                            onClick={() => handleDelete(user._id, activeTab)}
-                            style={{ ...styles.iconAction, color: "#ef4444" }}
-                            title="Delete"
-                          >
-                            🗑️
-                          </button>
+                          <div style={{ display: "flex", gap: "5px" }}>
+                            <button
+                              onClick={() => handleEdit(user)}
+                              style={styles.iconAction}
+                            >
+                              ✏️
+                            </button>
+                            <button
+                              onClick={() => handleDelete(user._id, activeTab)}
+                              style={{ ...styles.iconAction, color: "#ef4444" }}
+                            >
+                              🗑️
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -606,110 +605,65 @@ const AdminDash = () => {
         {activeTab === "finance" && (
           <div style={styles.tableCard}>
             <h3 style={styles.cardTitle}>Financial Overview</h3>
-            <table style={styles.table}>
-              <thead>
-                <tr style={styles.trHead}>
-                  <th>Student</th>
-                  <th>Course</th>
-                  <th>Dues</th>
-                  <th>Status</th>
-                  <th>Invoice</th>
-                </tr>
-              </thead>
-              <tbody>
-                {students.map((s) => (
-                  <tr key={s._id} style={styles.tr}>
-                    <td style={styles.td}>
-                      <b>{s.name}</b>
-                    </td>
-                    <td style={styles.td}>{s.course || "N/A"}</td>
-                    <td style={styles.td}>₹28,000</td>
-                    <td style={styles.td}>
-                      <span
-                        style={
-                          s.fees === "Paid"
-                            ? styles.statusSuccess
-                            : styles.statusWarning
-                        }
-                      >
-                        {s.fees}
-                      </span>
-                    </td>
-                    <td style={styles.td}>
-                      {s.fees === "Pending" ? (
-                        <button
-                          style={styles.secondaryBtnSm}
-                          onClick={() => alert("Reminder Sent!")}
-                        >
-                          🔔 Send Reminder
-                        </button>
-                      ) : (
-                        <button style={styles.successBtnSm}>⬇ Download</button>
-                      )}
-                    </td>
+            <div style={styles.tableWrapper}>
+              <table style={styles.table}>
+                <thead>
+                  <tr style={styles.trHead}>
+                    <th>Student</th>
+                    <th>Course</th>
+                    <th>Dues</th>
+                    <th>Status</th>
+                    <th>Invoice</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {students.map((s) => (
+                    <tr key={s._id} style={styles.tr}>
+                      <td style={styles.td}>
+                        <b>{s.name}</b>
+                      </td>
+                      <td style={styles.td}>{s.course}</td>
+                      <td style={styles.td}>₹28k</td>
+                      <td style={styles.td}>
+                        <span
+                          style={
+                            s.fees === "Paid"
+                              ? styles.statusSuccess
+                              : styles.statusWarning
+                          }
+                        >
+                          {s.fees}
+                        </span>
+                      </td>
+                      <td style={styles.td}>
+                        {s.fees === "Pending" ? (
+                          <button style={styles.secondaryBtnSm}>🔔</button>
+                        ) : (
+                          <button style={styles.successBtnSm}>⬇</button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
-        {/* 4️⃣ NOTICES */}
-        {activeTab === "notices" && (
-          <div
-            style={{
-              ...styles.fadeProps,
-              display: "grid",
-              gridTemplateColumns: "1fr 2fr",
-              gap: "20px",
-            }}
-          >
-            <div style={styles.formCard}>
-              <h3 style={styles.cardTitle}>📢 Publish Announcement</h3>
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  setNotices([
-                    ...notices,
-                    {
-                      id: Date.now(),
-                      title: formData.name,
-                      date: new Date().toISOString().split("T")[0],
-                      type: "General",
-                    },
-                  ]);
-                  setFormData({ ...formData, name: "" });
-                }}
-              >
-                <div style={styles.inputGroup}>
-                  <label style={styles.label}>Notice Content</label>
-                  <textarea
-                    rows="4"
-                    style={styles.textarea}
-                    placeholder="Enter notice details..."
-                    value={formData.name}
-                    onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
-                    }
-                    required
-                  />
-                </div>
-                <button type="submit" style={styles.primaryBtn}>
-                  Publish to Portal
-                </button>
-              </form>
-            </div>
-            <div style={styles.tableCard}>
-              <h3 style={styles.cardTitle}>Notice Board</h3>
-              <div style={styles.noticeList}>
+        {/* 4️⃣ NOTICES & SETTINGS */}
+        {(activeTab === "notices" || activeTab === "settings") && (
+          <div style={styles.formCard}>
+            <h3 style={styles.cardTitle}>
+              {activeTab === "notices" ? "Notice Board" : "Settings"}
+            </h3>
+            {activeTab === "notices" ? (
+              <div>
                 {notices.map((n) => (
                   <div key={n.id} style={styles.noticeItem}>
-                    <div style={styles.noticeIcon}>📢</div>
-                    <div style={{ flex: 1 }}>
-                      <h4 style={styles.noticeTitle}>{n.title}</h4>
-                      <p style={styles.noticeMeta}>
-                        {n.date} • <span style={styles.badge}>{n.type}</span>
-                      </p>
+                    <div>
+                      <b>{n.title}</b>
+                      <br />
+                      <small>{n.date}</small>
                     </div>
                     <button
                       onClick={() => handleDelete(n.id, "notices")}
@@ -719,17 +673,27 @@ const AdminDash = () => {
                     </button>
                   </div>
                 ))}
+                <button
+                  style={{ ...styles.primaryBtn, marginTop: "15px" }}
+                  onClick={() => {
+                    const title = prompt("Enter Notice Title:");
+                    if (title)
+                      setNotices([
+                        ...notices,
+                        {
+                          id: Date.now(),
+                          title,
+                          date: new Date().toISOString().split("T")[0],
+                          type: "General",
+                        },
+                      ]);
+                  }}
+                >
+                  + Add Notice
+                </button>
               </div>
-            </div>
-          </div>
-        )}
-
-        {/* 5️⃣ SETTINGS */}
-        {activeTab === "settings" && (
-          <div style={styles.formCard}>
-            <h3 style={styles.cardTitle}>⚙️ Global Configuration</h3>
-            <div style={styles.settingsGrid}>
-              <div style={styles.inputGroup}>
+            ) : (
+              <div style={styles.form}>
                 <label style={styles.label}>Institute Name</label>
                 <input
                   style={styles.input}
@@ -738,25 +702,7 @@ const AdminDash = () => {
                     setSettings({ ...settings, instituteName: e.target.value })
                   }
                 />
-              </div>
-              <div style={styles.inputGroup}>
-                <label style={styles.label}>Current Academic Session</label>
-                <input
-                  style={styles.input}
-                  value={settings.session}
-                  onChange={(e) =>
-                    setSettings({ ...settings, session: e.target.value })
-                  }
-                />
-              </div>
-
-              <div style={styles.toggleRow}>
-                <div>
-                  <h4 style={styles.settingTitle}>Maintenance Mode</h4>
-                  <p style={styles.settingDesc}>
-                    Suspend all student/faculty access immediately.
-                  </p>
-                </div>
+                <label style={styles.label}>Maintenance Mode</label>
                 <button
                   onClick={() =>
                     setSettings({
@@ -765,28 +711,21 @@ const AdminDash = () => {
                     })
                   }
                   style={
-                    settings.maintenance ? styles.toggleOn : styles.toggleOff
+                    settings.maintenance
+                      ? styles.statusWarning
+                      : styles.statusSuccess
                   }
                 >
-                  <div
-                    style={
-                      settings.maintenance
-                        ? styles.toggleKnobOn
-                        : styles.toggleKnobOff
-                    }
-                  ></div>
+                  {settings.maintenance ? "🔴 Active" : "🟢 Inactive"}
                 </button>
-              </div>
-
-              <div style={{ gridColumn: "1 / -1", marginTop: "20px" }}>
                 <button
-                  style={styles.primaryBtn}
-                  onClick={() => alert("Settings Saved!")}
+                  style={{ ...styles.primaryBtn, marginTop: "20px" }}
+                  onClick={() => alert("Saved!")}
                 >
-                  Save Configuration
+                  Save Changes
                 </button>
               </div>
-            </div>
+            )}
           </div>
         )}
       </div>
@@ -800,41 +739,18 @@ const NavBtn = ({ icon, label, active, onClick }) => (
     style={active ? styles.navBtnActive : styles.navBtn}
     onClick={onClick}
   >
-    <span style={{ marginRight: "12px" }}>{icon}</span> {label}
+    <span style={{ marginRight: "12px", fontSize: "18px" }}>{icon}</span>{" "}
+    {label}
   </button>
 );
 
-const StatCard = ({ title, value, icon, color, trend }) => (
-  <div style={styles.statCard}>
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "start",
-      }}
-    >
-      <div>
-        <p style={styles.statTitle}>{title}</p>
-        <h3 style={styles.statValue}>{value}</h3>
-        <p
-          style={{
-            ...styles.statTrend,
-            color: trend.includes("+") ? "#10b981" : "#64748b",
-          }}
-        >
-          {trend}
-        </p>
-      </div>
-      <div
-        style={{
-          ...styles.statIcon,
-          backgroundColor: `${color}20`,
-          color: color,
-        }}
-      >
-        {icon}
-      </div>
+const StatCard = ({ title, value, icon, color }) => (
+  <div style={{ ...styles.statCard, borderLeft: `4px solid ${color}` }}>
+    <div>
+      <p style={styles.statTitle}>{title}</p>
+      <h3 style={styles.statValue}>{value}</h3>
     </div>
+    <div style={{ ...styles.statIcon, color: color }}>{icon}</div>
   </div>
 );
 
@@ -851,68 +767,89 @@ const TimelineItem = ({ time, title, desc, color }) => (
 
 // 💅 STYLES
 const styles = {
-  // 🟢 CONTAINER: Standard Block flow
   container: {
+    display: "flex",
     minHeight: "100vh",
     backgroundColor: "#f1f5f9",
     fontFamily: "'Inter', sans-serif",
+    overflowX: "hidden",
   },
 
-  // 🟢 SIDEBAR: Fixed, Flex Column, High Z-Index
+  // 🟢 SIDEBAR (FIXED FLEX LAYOUT)
   sidebar: {
+    width: "280px",
     backgroundColor: "#1e293b",
     color: "#f8fafc",
     display: "flex",
-    flexDirection: "column",
+    flexDirection: "column", // Stack items vertically
     borderRight: "1px solid #334155",
     position: "fixed",
     top: 0,
     left: 0,
-    height: "100vh",
-    zIndex: 1000,
-    overflow: "hidden",
-    whiteSpace: "nowrap",
-    transition: "width 0.3s ease, padding 0.3s ease, opacity 0.3s ease",
+    bottom: 0, // Full height fixed
+    zIndex: 2000,
+    transition: "transform 0.3s ease",
+    boxShadow: "2px 0 10px rgba(0,0,0,0.1)",
   },
 
-  // 🟢 NEW: Scrollable Menu Area (Keeps Logout Button at Bottom)
-  scrollableMenu: { flex: 1, overflowY: "auto", overflowX: "hidden" },
+  // 🟢 SCROLLABLE MENU (Takes all available space)
+  scrollableMenu: {
+    flex: 1,
+    overflowY: "auto",
+    padding: "20px",
+    scrollbarWidth: "thin", // For Firefox
+  },
 
-  // 🟢 MAIN CONTENT: Margin Left pushes it away from sidebar
+  // 🟢 FIXED FOOTER (Stays at bottom)
+  sidebarFooter: {
+    padding: "20px",
+    borderTop: "1px solid #334155",
+    backgroundColor: "#1e293b", // Matches sidebar bg
+    flexShrink: 0, // Prevents shrinking
+  },
+
+  mobileOverlay: {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    width: "100%",
+    height: "100%",
+    backgroundColor: "rgba(0,0,0,0.5)",
+    zIndex: 1900,
+  },
+
+  // 🟢 MAIN CONTENT (Margin adjusts based on sidebar)
   content: {
-    padding: "32px",
+    flex: 1,
+    padding: "20px",
     transition: "margin-left 0.3s ease",
-    width: "auto",
+    minHeight: "100vh",
+    width: "100%",
   },
 
-  // Sidebar Elements
+  // Elements
   logoContainer: {
+    padding: "20px",
     display: "flex",
     alignItems: "center",
-    gap: "12px",
-    marginBottom: "30px",
-    paddingLeft: "10px",
+    gap: "10px",
+    borderBottom: "1px solid #334155",
+    flexShrink: 0,
   },
-  logoIcon: { fontSize: "28px" },
-  logoText: {
-    fontSize: "20px",
-    fontWeight: "700",
-    letterSpacing: "-0.5px",
-    margin: 0,
-  },
-  menuGroup: { marginBottom: "24px" },
+  logoIcon: { fontSize: "24px" },
+  logoText: { fontSize: "18px", fontWeight: "700", margin: 0 },
+  menuGroup: { marginBottom: "20px" },
   menuLabel: {
     fontSize: "11px",
     fontWeight: "700",
     color: "#94a3b8",
-    marginBottom: "12px",
-    paddingLeft: "12px",
+    marginBottom: "10px",
     letterSpacing: "1px",
   },
   navBtn: {
     width: "100%",
     textAlign: "left",
-    padding: "12px 16px",
+    padding: "12px",
     background: "transparent",
     color: "#cbd5e1",
     border: "none",
@@ -920,14 +857,14 @@ const styles = {
     cursor: "pointer",
     fontSize: "14px",
     fontWeight: "500",
-    transition: "all 0.2s",
     display: "flex",
     alignItems: "center",
+    marginBottom: "5px",
   },
   navBtnActive: {
     width: "100%",
     textAlign: "left",
-    padding: "12px 16px",
+    padding: "12px",
     background: "#3b82f6",
     color: "white",
     border: "none",
@@ -937,19 +874,17 @@ const styles = {
     fontWeight: "600",
     display: "flex",
     alignItems: "center",
-    boxShadow: "0 4px 6px -1px rgba(59, 130, 246, 0.5)",
+    marginBottom: "5px",
   },
   logoutBtn: {
-    marginTop: "auto",
-    padding: "14px",
+    width: "100%",
+    padding: "12px",
     background: "#334155",
     color: "#f8fafc",
     border: "1px solid #475569",
     borderRadius: "8px",
     cursor: "pointer",
     fontWeight: "600",
-    transition: "0.2s",
-    marginBottom: "10px",
   },
 
   // Header
@@ -957,13 +892,9 @@ const styles = {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: "32px",
-  },
-  pageTitle: {
-    fontSize: "24px",
-    fontWeight: "700",
-    color: "#0f172a",
-    margin: 0,
+    marginBottom: "25px",
+    flexWrap: "wrap",
+    gap: "15px",
   },
   hamburgerBtn: {
     background: "none",
@@ -971,47 +902,49 @@ const styles = {
     fontSize: "24px",
     cursor: "pointer",
     color: "#334155",
-    marginRight: "15px",
   },
-  headerActions: { display: "flex", alignItems: "center", gap: "20px" },
+  pageTitle: {
+    fontSize: "22px",
+    fontWeight: "700",
+    color: "#0f172a",
+    margin: 0,
+  },
+  headerActions: {
+    display: "flex",
+    alignItems: "center",
+    gap: "15px",
+    flex: 1,
+    justifyContent: "flex-end",
+  },
   searchBar: {
     display: "flex",
     alignItems: "center",
     background: "white",
-    padding: "10px 16px",
+    padding: "8px 15px",
     borderRadius: "50px",
-    boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
     border: "1px solid #e2e8f0",
+    maxWidth: "250px",
+    width: "100%",
   },
   headerSearch: {
     border: "none",
     outline: "none",
     fontSize: "14px",
-    marginLeft: "8px",
-    width: "200px",
-  },
-  iconBtn: {
-    fontSize: "20px",
-    cursor: "pointer",
-    background: "white",
-    padding: "10px",
-    borderRadius: "50%",
-    boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
-    border: "1px solid #e2e8f0",
+    marginLeft: "10px",
+    width: "100%",
   },
   profileBadge: {
     display: "flex",
     alignItems: "center",
-    gap: "12px",
+    gap: "10px",
     background: "white",
-    padding: "6px 16px 6px 6px",
+    padding: "5px",
     borderRadius: "50px",
     border: "1px solid #e2e8f0",
-    cursor: "pointer",
   },
   avatar: {
-    width: "36px",
-    height: "36px",
+    width: "32px",
+    height: "32px",
     borderRadius: "50%",
     background: "#3b82f6",
     color: "white",
@@ -1019,70 +952,70 @@ const styles = {
     justifyContent: "center",
     alignItems: "center",
     fontWeight: "700",
-    fontSize: "13px",
+    fontSize: "12px",
   },
-  profileName: { fontSize: "14px", fontWeight: "600", color: "#0f172a" },
-  profileRole: { fontSize: "11px", color: "#64748b" },
+  profileName: {
+    fontSize: "13px",
+    fontWeight: "600",
+    color: "#0f172a",
+    paddingRight: "10px",
+  },
 
-  // Cards & Grid
+  // Grid & Cards
   statGrid: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-    gap: "24px",
-    marginBottom: "32px",
+    gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+    gap: "15px",
+    marginBottom: "25px",
   },
   statCard: {
     background: "white",
-    padding: "24px",
-    borderRadius: "16px",
-    boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)",
-    border: "1px solid #f1f5f9",
+    padding: "20px",
+    borderRadius: "12px",
+    boxShadow: "0 2px 5px rgba(0,0,0,0.05)",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   statTitle: {
-    fontSize: "13px",
+    fontSize: "12px",
     fontWeight: "600",
     color: "#64748b",
-    margin: "0 0 8px 0",
+    margin: 0,
   },
   statValue: {
-    fontSize: "28px",
+    fontSize: "24px",
     fontWeight: "700",
     color: "#0f172a",
-    margin: "0 0 8px 0",
+    margin: "5px 0 0 0",
   },
-  statTrend: { fontSize: "12px", fontWeight: "500" },
-  statIcon: {
-    width: "48px",
-    height: "48px",
-    borderRadius: "12px",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    fontSize: "20px",
-  },
+  statIcon: { fontSize: "24px", opacity: 0.8 },
 
-  splitGrid: { display: "grid", gridTemplateColumns: "2fr 1fr", gap: "24px" },
+  splitGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+    gap: "25px",
+  },
+  responsiveRow: { display: "flex", flexDirection: "column", gap: "25px" },
   card: {
     background: "white",
-    padding: "24px",
+    padding: "20px",
     borderRadius: "16px",
-    boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)",
-    border: "1px solid #f1f5f9",
+    boxShadow: "0 2px 5px rgba(0,0,0,0.05)",
   },
   cardTitle: {
     fontSize: "16px",
     fontWeight: "700",
     color: "#0f172a",
-    margin: "0 0 20px 0",
+    marginBottom: "20px",
   },
 
-  // Charts & Timeline
+  // Charts
   chartContainer: {
-    height: "200px",
+    height: "150px",
     display: "flex",
     alignItems: "flex-end",
-    justifyContent: "space-between",
-    padding: "0 20px",
+    justifyContent: "space-around",
   },
   barWrapper: {
     display: "flex",
@@ -1090,159 +1023,110 @@ const styles = {
     alignItems: "center",
     height: "100%",
     justifyContent: "flex-end",
-    flex: 1,
+    width: "10%",
   },
-  bar: {
-    width: "24px",
-    background: "#3b82f6",
-    borderRadius: "4px 4px 0 0",
-    transition: "height 0.5s ease",
-  },
-  barLabel: {
-    marginTop: "8px",
-    fontSize: "12px",
-    color: "#64748b",
-    fontWeight: "500",
-  },
+  bar: { width: "100%", background: "#3b82f6", borderRadius: "4px 4px 0 0" },
+  barLabel: { marginTop: "5px", fontSize: "10px", color: "#64748b" },
 
+  // Timeline
   timeline: {
     paddingLeft: "10px",
     borderLeft: "2px solid #e2e8f0",
-    marginLeft: "10px",
+    marginLeft: "5px",
   },
   timelineItem: {
     position: "relative",
-    paddingLeft: "24px",
-    marginBottom: "24px",
+    paddingLeft: "20px",
+    marginBottom: "20px",
   },
   timelineDot: {
-    width: "12px",
-    height: "12px",
+    width: "10px",
+    height: "10px",
     borderRadius: "50%",
     background: "white",
     border: "3px solid",
     position: "absolute",
-    left: "-7px",
-    top: "0",
+    left: "-6px",
+    top: "2px",
   },
-  timelineTime: {
-    fontSize: "11px",
-    fontWeight: "600",
-    color: "#94a3b8",
-    marginBottom: "4px",
-  },
+  timelineTime: { fontSize: "10px", fontWeight: "600", color: "#94a3b8" },
   timelineTitle: {
-    fontSize: "14px",
+    fontSize: "13px",
     fontWeight: "600",
     color: "#334155",
     margin: 0,
   },
-  timelineDesc: { fontSize: "13px", color: "#64748b", margin: "4px 0 0 0" },
+  timelineDesc: { fontSize: "12px", color: "#64748b", margin: 0 },
 
   // Forms
   formCard: {
     background: "white",
-    padding: "24px",
+    padding: "20px",
     borderRadius: "16px",
-    boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)",
-    height: "fit-content",
-    flex: 1,
+    boxShadow: "0 2px 5px rgba(0,0,0,0.05)",
   },
-  formHorizontal: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: "16px",
-  },
-  inputGroup: { display: "flex", flexDirection: "column", gap: "6px" },
-  label: { fontSize: "13px", fontWeight: "600", color: "#475569" },
+  form: { display: "flex", flexDirection: "column", gap: "15px" },
   input: {
-    padding: "10px 14px",
+    padding: "12px",
     borderRadius: "8px",
     border: "1px solid #e2e8f0",
     fontSize: "14px",
-    outline: "none",
-    transition: "border 0.2s",
     width: "100%",
     boxSizing: "border-box",
   },
   select: {
-    padding: "10px 14px",
+    padding: "12px",
     borderRadius: "8px",
     border: "1px solid #e2e8f0",
     fontSize: "14px",
-    outline: "none",
-    background: "white",
     width: "100%",
     boxSizing: "border-box",
+    background: "white",
   },
-  textarea: {
-    padding: "10px 14px",
-    borderRadius: "8px",
-    border: "1px solid #e2e8f0",
-    fontSize: "14px",
-    outline: "none",
-    resize: "vertical",
-    width: "100%",
-  },
-  formActions: { display: "flex", gap: "12px", marginTop: "10px" },
+  formActions: { display: "flex", gap: "10px" },
   primaryBtn: {
-    padding: "10px 20px",
+    padding: "12px",
     background: "#0f172a",
     color: "white",
     borderRadius: "8px",
     border: "none",
     fontWeight: "600",
     cursor: "pointer",
-    fontSize: "14px",
+    flex: 1,
   },
   secondaryBtn: {
-    padding: "10px 20px",
+    padding: "12px",
     background: "white",
     color: "#475569",
     borderRadius: "8px",
     border: "1px solid #e2e8f0",
     fontWeight: "600",
     cursor: "pointer",
-    fontSize: "14px",
+    flex: 1,
   },
 
   // Tables
   tableCard: {
     background: "white",
-    padding: "0",
+    padding: "20px",
     borderRadius: "16px",
-    boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)",
-    flex: 2,
+    boxShadow: "0 2px 5px rgba(0,0,0,0.05)",
     overflow: "hidden",
   },
-  tableHeader: {
-    padding: "20px 24px",
-    borderBottom: "1px solid #f1f5f9",
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  searchInput: {
-    padding: "8px 16px",
-    borderRadius: "6px",
-    border: "1px solid #e2e8f0",
-    fontSize: "13px",
-    width: "220px",
-  },
-  tableWrapper: { padding: "0" },
-  table: { width: "100%", borderCollapse: "collapse" },
-  trHead: { background: "#f8fafc", textAlign: "left" },
-  tr: { borderBottom: "1px solid #f1f5f9", transition: "background 0.1s" },
+  tableWrapper: { overflowX: "auto" },
+  table: { width: "100%", borderCollapse: "collapse", minWidth: "500px" },
+  trHead: { background: "#f8f9fa", textAlign: "left" },
+  tr: { borderBottom: "1px solid #f1f2f6" },
   td: {
-    padding: "16px 24px",
+    padding: "12px 15px",
     fontSize: "14px",
     color: "#334155",
     verticalAlign: "middle",
   },
-  userCell: { display: "flex", alignItems: "center", gap: "12px" },
+  userCell: { display: "flex", alignItems: "center", gap: "10px" },
   userAvatar: {
-    width: "32px",
-    height: "32px",
+    width: "30px",
+    height: "30px",
     borderRadius: "50%",
     background: "#e2e8f0",
     color: "#64748b",
@@ -1252,30 +1136,29 @@ const styles = {
     fontSize: "12px",
     fontWeight: "700",
   },
-  userName: { fontWeight: "600", color: "#0f172a" },
   badge: {
-    padding: "4px 10px",
+    padding: "4px 8px",
     borderRadius: "20px",
     background: "#f1f5f9",
     color: "#475569",
-    fontSize: "12px",
+    fontSize: "11px",
     fontWeight: "600",
     border: "1px solid #e2e8f0",
   },
   statusSuccess: {
-    padding: "4px 10px",
+    padding: "4px 8px",
     borderRadius: "20px",
     background: "#dcfce7",
     color: "#166534",
-    fontSize: "12px",
+    fontSize: "11px",
     fontWeight: "600",
   },
   statusWarning: {
-    padding: "4px 10px",
+    padding: "4px 8px",
     borderRadius: "20px",
     background: "#fee2e2",
     color: "#991b1b",
-    fontSize: "12px",
+    fontSize: "11px",
     fontWeight: "600",
   },
   iconAction: {
@@ -1283,130 +1166,41 @@ const styles = {
     border: "none",
     cursor: "pointer",
     fontSize: "16px",
-    padding: "4px",
-    borderRadius: "4px",
-    color: "#64748b",
+    padding: "5px",
   },
 
-  // Finance & Notices
   secondaryBtnSm: {
-    padding: "6px 12px",
+    padding: "5px 10px",
     background: "#fff",
     border: "1px solid #e2e8f0",
     borderRadius: "6px",
     fontSize: "12px",
-    fontWeight: "600",
     cursor: "pointer",
-    color: "#475569",
   },
   successBtnSm: {
-    padding: "6px 12px",
+    padding: "5px 10px",
     background: "#f0fdf4",
     border: "1px solid #dcfce7",
     borderRadius: "6px",
     fontSize: "12px",
-    fontWeight: "600",
     cursor: "pointer",
     color: "#166534",
   },
-  noticeList: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "12px",
-    padding: "24px",
-  },
   noticeItem: {
-    display: "flex",
-    gap: "16px",
-    padding: "16px",
-    background: "#f8fafc",
-    borderRadius: "12px",
-    border: "1px solid #f1f5f9",
-    alignItems: "center",
-  },
-  noticeIcon: {
-    width: "40px",
-    height: "40px",
-    background: "#e0f2fe",
-    color: "#0369a1",
-    borderRadius: "10px",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    fontSize: "18px",
-  },
-  noticeTitle: {
-    fontSize: "14px",
-    fontWeight: "600",
-    color: "#0f172a",
-    margin: "0 0 4px 0",
-  },
-  noticeMeta: { fontSize: "12px", color: "#64748b", margin: 0 },
-
-  // Settings
-  settingsGrid: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: "24px",
-  },
-  toggleRow: {
-    gridColumn: "1 / -1",
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: "16px",
-    background: "#f8fafc",
-    borderRadius: "12px",
-    border: "1px solid #f1f5f9",
-  },
-  settingTitle: {
+    padding: "10px",
+    borderBottom: "1px solid #f1f5f9",
     fontSize: "14px",
+  },
+  label: {
+    fontSize: "12px",
     fontWeight: "600",
-    color: "#0f172a",
-    margin: 0,
-  },
-  settingDesc: { fontSize: "13px", color: "#64748b", margin: "4px 0 0 0" },
-  toggleOn: {
-    width: "44px",
-    height: "24px",
-    background: "#3b82f6",
-    borderRadius: "20px",
-    border: "none",
-    cursor: "pointer",
-    position: "relative",
-    transition: "0.2s",
-  },
-  toggleOff: {
-    width: "44px",
-    height: "24px",
-    background: "#cbd5e1",
-    borderRadius: "20px",
-    border: "none",
-    cursor: "pointer",
-    position: "relative",
-    transition: "0.2s",
-  },
-  toggleKnobOn: {
-    width: "18px",
-    height: "18px",
-    background: "white",
-    borderRadius: "50%",
-    position: "absolute",
-    top: "3px",
-    right: "3px",
-    transition: "0.2s",
-  },
-  toggleKnobOff: {
-    width: "18px",
-    height: "18px",
-    background: "white",
-    borderRadius: "50%",
-    position: "absolute",
-    top: "3px",
-    left: "3px",
-    transition: "0.2s",
+    color: "#64748b",
+    display: "block",
+    marginBottom: "5px",
   },
 };
 
 export default AdminDash;
-  
