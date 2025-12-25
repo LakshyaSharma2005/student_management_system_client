@@ -58,7 +58,7 @@ const AdminDash = () => {
 
   // --- 2. SETTINGS STATE ---
   const [settings, setSettings] = useState({
-    instituteName: "AdminOS Institute",
+    instituteName: "Admin Panel",
     session: "2025-2026",
     maintenance: false,
   });
