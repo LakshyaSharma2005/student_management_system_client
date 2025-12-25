@@ -2,9 +2,9 @@ import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
-// 🎓 UPDATED: Comprehensive Course List
+// 🎓 ENTERPRISE COURSE LIST
 const COURSE_OPTIONS = [
-  "BCA (Core)",
+  "BCA (General)",
   "BCA (Data Science)",
   "BCA (AI & ML)",
   "BCA (Cloud Computing)",
@@ -14,61 +14,75 @@ const COURSE_OPTIONS = [
   "B.Tech (ECE)",
   "B.Tech (Mechanical)",
   "B.Tech (Civil)",
+  "B.Tech (Aerospace)",
   "B.Sc (IT)",
   "B.Sc (Computer Science)",
-  "B.Sc (core)",
+  "B.Sc (Physics)",
+  "B.Sc (Chemistry)",
+  "B.Sc (Biotech)",
   "M.Sc (Computer Science)",
+  "M.Sc (Mathematics)",
   "MCA",
-  "BBA",
+  "M.Tech (CSE)",
+  "BBA (General)",
+  "BBA (Digital Marketing)",
   "MBA (Marketing)",
   "MBA (Finance)",
   "MBA (HR)",
+  "MBA (Int. Business)",
   "B.Pharma",
   "M.Pharma",
+  "D.Pharma",
   "LLB",
-  "BA",
-  "MA",
+  "BA (LLB)",
+  "LLM",
+  "BA (Psychology)",
+  "BA (Economics)",
+  "BA (English)",
+  "MA (Political Science)",
 ];
 
 const AdminDash = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("overview");
 
-  // 🔒 REAL BACKEND URL
   const SERVER_URL =
     "https://student-management-system-server-vygt.onrender.com";
 
-  // --- 1. DATA STATES ---
+  // --- STATES ---
   const [students, setStudents] = useState([]);
   const [teachers, setTeachers] = useState([]);
   const [notices, setNotices] = useState([
     {
       id: 1,
-      title: "Semester Exams Start Dec 20",
+      title: "End Semester Examination Schedule",
       date: "2025-12-15",
       type: "Urgent",
     },
     {
       id: 2,
-      title: "Winter Vacation Announced",
+      title: "Winter Vacation & Campus Closure",
       date: "2025-12-18",
       type: "General",
     },
+    {
+      id: 3,
+      title: "Faculty Meeting: Curriculum Review",
+      date: "2025-12-22",
+      type: "Meeting",
+    },
   ]);
 
-  // --- 2. SETTINGS STATE ---
   const [settings, setSettings] = useState({
-    instituteName: "Admin Panel",
+    instituteName: "AdminOS University",
     session: "2025-2026",
     maintenance: false,
   });
 
-  // --- 3. UI STATES ---
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(null);
 
-  // --- 4. FORM STATE ---
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -78,7 +92,7 @@ const AdminDash = () => {
     fees: "Pending",
   });
 
-  // 🔄 FETCH DATA FUNCTION (Wrapped in useCallback)
+  // 🔄 FETCH DATA
   const fetchData = useCallback(async () => {
     try {
       const token = localStorage.getItem("token");
@@ -98,7 +112,6 @@ const AdminDash = () => {
     }
   }, [SERVER_URL]);
 
-  // 🔄 INITIAL LOAD EFFECT
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -108,15 +121,14 @@ const AdminDash = () => {
     }
   }, [navigate, fetchData]);
 
-  // 📝 HANDLER: Add or Update User
+  // 📝 HANDLERS (Logic Unchanged)
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
-
       if (isEditing) {
-        alert(`✏️ Details for ${formData.name} updated successfully!`);
+        alert(`✏️ Details updated successfully!`);
         setIsEditing(null);
       } else {
         const payload = {
@@ -127,10 +139,9 @@ const AdminDash = () => {
         await axios.post(`${SERVER_URL}/api/auth/register`, payload, {
           headers: { Authorization: token },
         });
-        alert(`✅ ${payload.role} Added Successfully!`);
+        alert(`✅ User Created Successfully!`);
         fetchData();
       }
-
       setFormData({
         name: "",
         email: "",
@@ -140,14 +151,11 @@ const AdminDash = () => {
         fees: "Pending",
       });
     } catch (err) {
-      alert(
-        "❌ Operation Failed: " + (err.response?.data?.message || err.message)
-      );
+      alert("❌ Error: " + (err.response?.data?.message || err.message));
     }
     setLoading(false);
   };
 
-  // ✏️ HANDLER: Edit User
   const handleEdit = (user) => {
     setIsEditing(user._id);
     setFormData({
@@ -161,215 +169,278 @@ const AdminDash = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // 🗑️ HANDLER: Delete User
   const handleDelete = async (id, type) => {
-    if (!window.confirm("Are you sure?")) return;
+    if (!window.confirm("Confirm deletion? This action is irreversible."))
+      return;
     try {
       const token = localStorage.getItem("token");
       await axios.delete(`${SERVER_URL}/api/admin/delete/${id}`, {
         headers: { Authorization: token },
       });
-
       if (type === "students")
         setStudents(students.filter((s) => s._id !== id));
       if (type === "teachers")
         setTeachers(teachers.filter((t) => t._id !== id));
       if (type === "notices") setNotices(notices.filter((n) => n.id !== id));
-
-      alert("🗑️ Deleted Successfully");
+      alert("🗑️ Record Removed");
     } catch (err) {
       alert("❌ Delete Failed");
     }
   };
 
-  // 🔍 FILTER DATA
   const getDataToDisplay = () => {
-    if (activeTab === "students")
-      return students.filter((s) =>
-        s.name?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    if (activeTab === "teachers")
-      return teachers.filter((t) =>
-        t.name?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    return [];
+    const list = activeTab === "students" ? students : teachers;
+    return list.filter((item) =>
+      item.name?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
   };
 
-  // 📊 CALCULATE STATS
   const totalRevenue = students.filter((s) => s.fees === "Paid").length * 28000;
   const pendingFees = students.filter((s) => s.fees === "Pending").length;
 
   return (
     <div style={styles.container}>
-      {/* 🟢 TOP NAVBAR */}
-      <div style={styles.navbar}>
-        <div style={styles.brand}>
-          <span style={styles.logoIcon}>⚡</span>
-          <h1>
+      {/* 🌑 PROFESSIONAL SIDEBAR */}
+      <div style={styles.sidebar}>
+        <div style={styles.logoContainer}>
+          <div style={styles.logoIcon}>🎓</div>
+          <h2 style={styles.logoText}>
             {settings.instituteName.split(" ")[0]}
-            <span style={{ color: "#3498db" }}>OS</span>
-          </h1>
+            <span style={{ color: "#3b82f6" }}>Admin</span>
+          </h2>
         </div>
-        <div style={styles.navRight}>
-          <div style={styles.adminProfile}>
-            <div style={styles.avatar}>A</div>
-            <span>Administrator</span>
-          </div>
-          <button
-            onClick={() => {
-              localStorage.removeItem("token");
-              navigate("/");
-            }}
-            style={styles.logoutBtn}
-          >
-            Logout
-          </button>
-        </div>
-      </div>
 
-      <div style={styles.mainGrid}>
-        {/* 🟡 SIDEBAR */}
-        <div style={styles.sidebar}>
-          <p style={styles.menuLabel}>MENU</p>
+        <div style={styles.menuGroup}>
+          <p style={styles.menuLabel}>DASHBOARD</p>
           <NavBtn
-            label="📊 Overview"
+            icon="📊"
+            label="Overview"
             active={activeTab === "overview"}
             onClick={() => setActiveTab("overview")}
           />
           <NavBtn
-            label="👨‍🎓 Students"
+            icon="📢"
+            label="Announcements"
+            active={activeTab === "notices"}
+            onClick={() => setActiveTab("notices")}
+          />
+        </div>
+
+        <div style={styles.menuGroup}>
+          <p style={styles.menuLabel}>ACADEMIC</p>
+          <NavBtn
+            icon="👨‍🎓"
+            label="Students"
             active={activeTab === "students"}
             onClick={() => setActiveTab("students")}
           />
           <NavBtn
-            label="👨‍🏫 Teachers"
+            icon="👨‍🏫"
+            label="Faculty"
             active={activeTab === "teachers"}
             onClick={() => setActiveTab("teachers")}
           />
           <NavBtn
-            label="💰 Finance"
+            icon="💳"
+            label="Finance"
             active={activeTab === "finance"}
             onClick={() => setActiveTab("finance")}
           />
-          <div style={styles.divider}></div>
-          <p style={styles.menuLabel}>SYSTEM</p>
+        </div>
+
+        <div style={styles.menuGroup}>
+          <p style={styles.menuLabel}>ADMINISTRATION</p>
           <NavBtn
-            label="📢 Notices"
-            active={activeTab === "notices"}
-            onClick={() => setActiveTab("notices")}
-          />
-          <NavBtn
-            label="⚙️ Settings"
+            icon="⚙️"
+            label="Settings"
             active={activeTab === "settings"}
             onClick={() => setActiveTab("settings")}
           />
         </div>
 
-        {/* 🔵 CONTENT */}
-        <div style={styles.content}>
-          {/* 1️⃣ OVERVIEW TAB */}
-          {activeTab === "overview" && (
-            <div style={styles.overviewGrid}>
-              <StatCard
-                title="Total Students"
-                value={students.length}
-                color="#3498db"
-              />
-              <StatCard
-                title="Total Teachers"
-                value={teachers.length}
-                color="#e67e22"
-              />
-              <StatCard
-                title="Revenue"
-                value={`₹${totalRevenue.toLocaleString()}`}
-                color="#27ae60"
-              />
-              <StatCard
-                title="Pending Fees"
-                value={pendingFees}
-                color="#e74c3c"
-              />
+        <button
+          onClick={() => {
+            localStorage.removeItem("token");
+            navigate("/");
+          }}
+          style={styles.logoutBtn}
+        >
+          ↪ Sign Out
+        </button>
+      </div>
 
-              <div style={styles.splitGrid}>
-                <div style={styles.card}>
-                  <h3>📈 Admissions</h3>
-                  <div style={styles.chartPlaceholder}>
-                    {[40, 60, 30, 80, 50].map((h, i) => (
-                      <div
-                        key={i}
-                        style={{ ...styles.bar, height: `${h}%` }}
-                      ></div>
-                    ))}
-                  </div>
+      {/* ⚪ MAIN CONTENT */}
+      <div style={styles.content}>
+        {/* TOP HEADER */}
+        <div style={styles.header}>
+          <h2 style={styles.pageTitle}>
+            {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
+          </h2>
+          <div style={styles.headerActions}>
+            <div style={styles.searchBar}>
+              <span>🔍</span>
+              <input
+                placeholder="Search records..."
+                style={styles.headerSearch}
+              />
+            </div>
+            <div style={styles.iconBtn}>🔔</div>
+            <div style={styles.profileBadge}>
+              <div style={styles.avatar}>AD</div>
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                <span style={styles.profileName}>Admin User</span>
+                <span style={styles.profileRole}>Super Admin</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 1️⃣ OVERVIEW TAB */}
+        {activeTab === "overview" && (
+          <div style={styles.fadeProps}>
+            <div style={styles.statGrid}>
+              <StatCard
+                title="Total Enrolled"
+                value={students.length}
+                icon="👥"
+                color="#3b82f6"
+                trend="+12% this week"
+              />
+              <StatCard
+                title="Active Faculty"
+                value={teachers.length}
+                icon="👨‍🏫"
+                color="#10b981"
+                trend="Stable"
+              />
+              <StatCard
+                title="Total Revenue"
+                value={`₹${(totalRevenue / 1000).toFixed(1)}k`}
+                icon="💰"
+                color="#8b5cf6"
+                trend="+5% vs last mo"
+              />
+              <StatCard
+                title="Pending Dues"
+                value={pendingFees}
+                icon="⚠️"
+                color="#ef4444"
+                trend="Action Required"
+              />
+            </div>
+
+            <div style={styles.splitGrid}>
+              <div style={styles.card}>
+                <h3 style={styles.cardTitle}>📈 Enrollment Trends</h3>
+                <div style={styles.chartContainer}>
+                  {/* CSS Bar Chart */}
+                  {[45, 72, 58, 90, 65, 80, 55].map((h, i) => (
+                    <div key={i} style={styles.barWrapper}>
+                      <div style={{ ...styles.bar, height: `${h}%` }}></div>
+                      <span style={styles.barLabel}>
+                        {["M", "T", "W", "T", "F", "S", "S"][i]}
+                      </span>
+                    </div>
+                  ))}
                 </div>
-                <div style={styles.card}>
-                  <h3>🕒 Recent Activity</h3>
-                  <ul style={styles.activityList}>
-                    <li style={styles.activityItem}>
-                      <span style={styles.time}>10:00 AM</span> System Backup
-                    </li>
-                    <li style={styles.activityItem}>
-                      <span style={styles.time}>11:30 AM</span> New Student
-                      Joined
-                    </li>
-                    <li style={styles.activityItem}>
-                      <span style={styles.time}>02:15 PM</span> Fee Payment
-                      Received
-                    </li>
-                  </ul>
+              </div>
+
+              <div style={styles.card}>
+                <h3 style={styles.cardTitle}>🕒 System Audit Log</h3>
+                <div style={styles.timeline}>
+                  <TimelineItem
+                    time="10:42 AM"
+                    title="New Student Registration"
+                    desc="Gaurav Gochar enrolled in BCA (DS)"
+                    color="#3b82f6"
+                  />
+                  <TimelineItem
+                    time="11:15 AM"
+                    title="Fee Payment Received"
+                    desc="₹28,000 processed via Gateway"
+                    color="#10b981"
+                  />
+                  <TimelineItem
+                    time="01:30 PM"
+                    title="System Backup"
+                    desc="Automated backup completed successfully"
+                    color="#64748b"
+                  />
+                  <TimelineItem
+                    time="03:45 PM"
+                    title="Notice Published"
+                    desc="'Winter Vacation' posted to portal"
+                    color="#f59e0b"
+                  />
                 </div>
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* 2️⃣ STUDENTS & TEACHERS MANAGEMENT */}
-          {(activeTab === "students" || activeTab === "teachers") && (
-            <div style={styles.actionArea}>
-              <div style={styles.formCard}>
-                <h3>
-                  {isEditing
-                    ? "✏️ Edit User"
-                    : `➕ Add ${
-                        activeTab === "students" ? "Student" : "Teacher"
-                      }`}
-                </h3>
-                <form onSubmit={handleSubmit} style={styles.form}>
+        {/* 2️⃣ STUDENTS & TEACHERS */}
+        {(activeTab === "students" || activeTab === "teachers") && (
+          <div
+            style={{
+              ...styles.fadeProps,
+              display: "flex",
+              gap: "20px",
+              alignItems: "start",
+            }}
+          >
+            {/* LEFT: FORM */}
+            <div style={styles.formCard}>
+              <h3 style={styles.cardTitle}>
+                {isEditing
+                  ? "✏️ Edit Record"
+                  : `➕ Add ${
+                      activeTab === "students" ? "Student" : "Faculty"
+                    }`}
+              </h3>
+              <form onSubmit={handleSubmit} style={styles.form}>
+                <div style={styles.inputGroup}>
+                  <label style={styles.label}>Full Name</label>
                   <input
                     style={styles.input}
                     type="text"
-                    placeholder="Full Name"
                     value={formData.name}
                     onChange={(e) =>
                       setFormData({ ...formData, name: e.target.value })
                     }
                     required
                   />
+                </div>
+                <div style={styles.inputGroup}>
+                  <label style={styles.label}>Email Address</label>
                   <input
                     style={styles.input}
                     type="email"
-                    placeholder="Email"
                     value={formData.email}
                     onChange={(e) =>
                       setFormData({ ...formData, email: e.target.value })
                     }
                     required
                   />
-                  {!isEditing && (
+                </div>
+                {!isEditing && (
+                  <div style={styles.inputGroup}>
+                    <label style={styles.label}>Password</label>
                     <input
                       style={styles.input}
                       type="password"
-                      placeholder="Password (Default: 123456)"
+                      placeholder="Default: 123456"
                       value={formData.password}
                       onChange={(e) =>
                         setFormData({ ...formData, password: e.target.value })
                       }
                     />
-                  )}
+                  </div>
+                )}
 
-                  {activeTab === "students" ? (
-                    <>
-                      {/* ✅ UPDATED COURSE SELECT WITH REAL DATA */}
+                {activeTab === "students" ? (
+                  <>
+                    <div style={styles.inputGroup}>
+                      <label style={styles.label}>Course / Branch</label>
                       <select
                         style={styles.select}
                         value={formData.course}
@@ -378,14 +449,16 @@ const AdminDash = () => {
                         }
                         required
                       >
-                        <option value="">-- Select Course --</option>
-                        {COURSE_OPTIONS.map((course, idx) => (
-                          <option key={idx} value={course}>
-                            {course}
+                        <option value="">Select Specialization...</option>
+                        {COURSE_OPTIONS.map((c, i) => (
+                          <option key={i} value={c}>
+                            {c}
                           </option>
                         ))}
                       </select>
-
+                    </div>
+                    <div style={styles.inputGroup}>
+                      <label style={styles.label}>Fee Status</label>
                       <select
                         style={styles.select}
                         value={formData.fees}
@@ -393,32 +466,36 @@ const AdminDash = () => {
                           setFormData({ ...formData, fees: e.target.value })
                         }
                       >
-                        <option value="Pending">Fees: Pending</option>
-                        <option value="Paid">Fees: Paid</option>
+                        <option value="Pending">Pending</option>
+                        <option value="Paid">Paid</option>
                       </select>
-                    </>
-                  ) : (
+                    </div>
+                  </>
+                ) : (
+                  <div style={styles.inputGroup}>
+                    <label style={styles.label}>Specialization Subject</label>
                     <input
                       style={styles.input}
                       type="text"
-                      placeholder="Subject"
                       value={formData.subject}
                       onChange={(e) =>
                         setFormData({ ...formData, subject: e.target.value })
                       }
                     />
-                  )}
+                  </div>
+                )}
 
+                <div style={styles.formActions}>
                   <button
                     type="submit"
                     disabled={loading}
-                    style={styles.submitBtn}
+                    style={styles.primaryBtn}
                   >
                     {loading
                       ? "Processing..."
                       : isEditing
-                      ? "Update User"
-                      : "Save Record"}
+                      ? "Update"
+                      : "Create Record"}
                   </button>
                   {isEditing && (
                     <button
@@ -434,31 +511,35 @@ const AdminDash = () => {
                           fees: "Pending",
                         });
                       }}
-                      style={styles.cancelBtn}
+                      style={styles.secondaryBtn}
                     >
                       Cancel
                     </button>
                   )}
-                </form>
-              </div>
-
-              <div style={styles.tableCard}>
-                <div style={styles.tableHeader}>
-                  <h3>📋 Directory</h3>
-                  <input
-                    style={styles.searchInput}
-                    type="text"
-                    placeholder="🔍 Search..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
                 </div>
+              </form>
+            </div>
+
+            {/* RIGHT: TABLE */}
+            <div style={styles.tableCard}>
+              <div style={styles.tableHeader}>
+                <h3 style={styles.cardTitle}>Directory</h3>
+                <input
+                  style={styles.searchInput}
+                  type="text"
+                  placeholder="Search by name..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <div style={styles.tableWrapper}>
                 <table style={styles.table}>
                   <thead>
                     <tr style={styles.trHead}>
                       <th>Name</th>
                       <th>Email</th>
-                      <th>Role Info</th>
+                      <th>{activeTab === "students" ? "Course" : "Subject"}</th>
+                      {activeTab === "students" && <th>Fees</th>}
                       <th>Actions</th>
                     </tr>
                   </thead>
@@ -466,24 +547,44 @@ const AdminDash = () => {
                     {getDataToDisplay().map((user) => (
                       <tr key={user._id} style={styles.tr}>
                         <td style={styles.td}>
-                          <b>{user.name}</b>
+                          <div style={styles.userCell}>
+                            <div style={styles.userAvatar}>
+                              {user.name.charAt(0)}
+                            </div>
+                            <span style={styles.userName}>{user.name}</span>
+                          </div>
                         </td>
                         <td style={styles.td}>{user.email}</td>
                         <td style={styles.td}>
                           <span style={styles.badge}>
-                            {user.course || user.subject}
+                            {user.course || user.subject || "N/A"}
                           </span>
                         </td>
+                        {activeTab === "students" && (
+                          <td style={styles.td}>
+                            <span
+                              style={
+                                user.fees === "Paid"
+                                  ? styles.statusSuccess
+                                  : styles.statusWarning
+                              }
+                            >
+                              {user.fees}
+                            </span>
+                          </td>
+                        )}
                         <td style={styles.td}>
                           <button
                             onClick={() => handleEdit(user)}
-                            style={styles.actionBtn}
+                            style={styles.iconAction}
+                            title="Edit"
                           >
                             ✏️
                           </button>
                           <button
                             onClick={() => handleDelete(user._id, activeTab)}
-                            style={{ ...styles.actionBtn, color: "#e74c3c" }}
+                            style={{ ...styles.iconAction, color: "#ef4444" }}
+                            title="Delete"
                           >
                             🗑️
                           </button>
@@ -494,475 +595,780 @@ const AdminDash = () => {
                 </table>
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* 3️⃣ FINANCE */}
-          {activeTab === "finance" && (
-            <div style={styles.tableCard}>
-              <h3>💰 Fee Status</h3>
-              <table style={styles.table}>
-                <thead>
-                  <tr style={styles.trHead}>
-                    <th>Student</th>
-                    <th>Amount</th>
-                    <th>Status</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {students.map((s) => (
-                    <tr key={s._id} style={styles.tr}>
-                      <td style={styles.td}>{s.name}</td>
-                      <td style={styles.td}>₹28,000</td>
-                      <td style={styles.td}>
-                        <span
-                          style={
-                            s.fees === "Paid"
-                              ? styles.statusGreen
-                              : styles.statusRed
-                          }
+        {/* 3️⃣ FINANCE */}
+        {activeTab === "finance" && (
+          <div style={styles.tableCard}>
+            <h3 style={styles.cardTitle}>Financial Overview</h3>
+            <table style={styles.table}>
+              <thead>
+                <tr style={styles.trHead}>
+                  <th>Student</th>
+                  <th>Course</th>
+                  <th>Dues</th>
+                  <th>Status</th>
+                  <th>Invoice</th>
+                </tr>
+              </thead>
+              <tbody>
+                {students.map((s) => (
+                  <tr key={s._id} style={styles.tr}>
+                    <td style={styles.td}>
+                      <b>{s.name}</b>
+                    </td>
+                    <td style={styles.td}>{s.course || "N/A"}</td>
+                    <td style={styles.td}>₹28,000</td>
+                    <td style={styles.td}>
+                      <span
+                        style={
+                          s.fees === "Paid"
+                            ? styles.statusSuccess
+                            : styles.statusWarning
+                        }
+                      >
+                        {s.fees}
+                      </span>
+                    </td>
+                    <td style={styles.td}>
+                      {s.fees === "Pending" ? (
+                        <button
+                          style={styles.secondaryBtnSm}
+                          onClick={() => alert("Reminder Sent!")}
                         >
-                          {s.fees}
-                        </span>
-                      </td>
-                      <td style={styles.td}>
-                        {s.fees === "Pending" && (
-                          <button
-                            style={styles.payBtn}
-                            onClick={() => alert("Reminder Sent!")}
-                          >
-                            🔔 Remind
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                          🔔 Send Reminder
+                        </button>
+                      ) : (
+                        <button style={styles.successBtnSm}>⬇ Download</button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
 
-          {/* 4️⃣ NOTICES */}
-          {activeTab === "notices" && (
-            <div style={styles.actionArea}>
-              <div style={styles.formCard}>
-                <h3>📢 Publish Notice</h3>
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    setNotices([
-                      ...notices,
-                      {
-                        id: Date.now(),
-                        title: formData.name,
-                        date: new Date().toISOString().split("T")[0],
-                        type: "General",
-                      },
-                    ]);
-                    setFormData({ ...formData, name: "" });
-                  }}
-                >
-                  <input
-                    style={styles.input}
-                    placeholder="Notice Title"
+        {/* 4️⃣ NOTICES */}
+        {activeTab === "notices" && (
+          <div
+            style={{
+              ...styles.fadeProps,
+              display: "grid",
+              gridTemplateColumns: "1fr 2fr",
+              gap: "20px",
+            }}
+          >
+            <div style={styles.formCard}>
+              <h3 style={styles.cardTitle}>📢 Publish Announcement</h3>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  setNotices([
+                    ...notices,
+                    {
+                      id: Date.now(),
+                      title: formData.name,
+                      date: new Date().toISOString().split("T")[0],
+                      type: "General",
+                    },
+                  ]);
+                  setFormData({ ...formData, name: "" });
+                }}
+              >
+                <div style={styles.inputGroup}>
+                  <label style={styles.label}>Notice Content</label>
+                  <textarea
+                    rows="4"
+                    style={styles.textarea}
+                    placeholder="Enter notice details..."
                     value={formData.name}
                     onChange={(e) =>
                       setFormData({ ...formData, name: e.target.value })
                     }
                     required
                   />
-                  <button type="submit" style={styles.submitBtn}>
-                    Post Notice
-                  </button>
-                </form>
-              </div>
-              <div style={styles.tableCard}>
-                <h3>Active Notices</h3>
+                </div>
+                <button type="submit" style={styles.primaryBtn}>
+                  Publish to Portal
+                </button>
+              </form>
+            </div>
+            <div style={styles.tableCard}>
+              <h3 style={styles.cardTitle}>Notice Board</h3>
+              <div style={styles.noticeList}>
                 {notices.map((n) => (
                   <div key={n.id} style={styles.noticeItem}>
-                    <div>
-                      <b>{n.title}</b>
-                      <br />
-                      <small>{n.date}</small>
+                    <div style={styles.noticeIcon}>📢</div>
+                    <div style={{ flex: 1 }}>
+                      <h4 style={styles.noticeTitle}>{n.title}</h4>
+                      <p style={styles.noticeMeta}>
+                        {n.date} • <span style={styles.badge}>{n.type}</span>
+                      </p>
                     </div>
                     <button
                       onClick={() => handleDelete(n.id, "notices")}
-                      style={styles.deleteLink}
+                      style={styles.iconAction}
                     >
-                      Delete
+                      🗑️
                     </button>
                   </div>
                 ))}
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* 5️⃣ SETTINGS */}
-          {activeTab === "settings" && (
-            <div style={styles.formCard}>
-              <h3>⚙️ System Configuration</h3>
-              <div
-                style={{
-                  marginTop: "20px",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "15px",
-                }}
-              >
-                <label>
-                  Institute Name{" "}
-                  <input
-                    style={styles.input}
-                    value={settings.instituteName}
-                    onChange={(e) =>
-                      setSettings({
-                        ...settings,
-                        instituteName: e.target.value,
-                      })
-                    }
-                  />
-                </label>
-                <label>
-                  Session{" "}
-                  <input
-                    style={styles.input}
-                    value={settings.session}
-                    onChange={(e) =>
-                      setSettings({ ...settings, session: e.target.value })
-                    }
-                  />
-                </label>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    background: "#f8f9fa",
-                    padding: "10px",
-                    borderRadius: "8px",
-                  }}
-                >
-                  <span>System Maintenance</span>
-                  <button
-                    onClick={() =>
-                      setSettings({
-                        ...settings,
-                        maintenance: !settings.maintenance,
-                      })
-                    }
-                    style={
-                      settings.maintenance ? styles.toggleOn : styles.toggleOff
-                    }
-                  >
-                    {settings.maintenance ? "🔴 Active" : "🟢 Inactive"}
-                  </button>
+        {/* 5️⃣ SETTINGS */}
+        {activeTab === "settings" && (
+          <div style={styles.formCard}>
+            <h3 style={styles.cardTitle}>⚙️ Global Configuration</h3>
+            <div style={styles.settingsGrid}>
+              <div style={styles.inputGroup}>
+                <label style={styles.label}>Institute Name</label>
+                <input
+                  style={styles.input}
+                  value={settings.instituteName}
+                  onChange={(e) =>
+                    setSettings({ ...settings, instituteName: e.target.value })
+                  }
+                />
+              </div>
+              <div style={styles.inputGroup}>
+                <label style={styles.label}>Current Academic Session</label>
+                <input
+                  style={styles.input}
+                  value={settings.session}
+                  onChange={(e) =>
+                    setSettings({ ...settings, session: e.target.value })
+                  }
+                />
+              </div>
+
+              <div style={styles.toggleRow}>
+                <div>
+                  <h4 style={styles.settingTitle}>Maintenance Mode</h4>
+                  <p style={styles.settingDesc}>
+                    Suspend all student/faculty access immediately.
+                  </p>
                 </div>
                 <button
-                  style={styles.submitBtn}
+                  onClick={() =>
+                    setSettings({
+                      ...settings,
+                      maintenance: !settings.maintenance,
+                    })
+                  }
+                  style={
+                    settings.maintenance ? styles.toggleOn : styles.toggleOff
+                  }
+                >
+                  <div
+                    style={
+                      settings.maintenance
+                        ? styles.toggleKnobOn
+                        : styles.toggleKnobOff
+                    }
+                  ></div>
+                </button>
+              </div>
+
+              <div style={{ gridColumn: "1 / -1", marginTop: "20px" }}>
+                <button
+                  style={styles.primaryBtn}
                   onClick={() => alert("Settings Saved!")}
                 >
-                  Save Changes
+                  Save Configuration
                 </button>
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
 };
 
-// 💎 COMPONENTS
-const NavBtn = ({ label, active, onClick }) => (
+// 🧩 COMPONENTS
+const NavBtn = ({ icon, label, active, onClick }) => (
   <button
-    style={active ? styles.menuBtnActive : styles.menuBtn}
+    style={active ? styles.navBtnActive : styles.navBtn}
     onClick={onClick}
   >
-    {label}
+    <span style={{ marginRight: "12px" }}>{icon}</span> {label}
   </button>
 );
 
-const StatCard = ({ title, value, color }) => (
-  <div style={{ ...styles.statCard, borderLeft: `5px solid ${color}` }}>
-    <h3 style={{ fontSize: "28px", color: "#2c3e50", margin: 0 }}>{value}</h3>
-    <p style={{ color: "#7f8c8d", margin: 0 }}>{title}</p>
+const StatCard = ({ title, value, icon, color, trend }) => (
+  <div style={styles.statCard}>
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "start",
+      }}
+    >
+      <div>
+        <p style={styles.statTitle}>{title}</p>
+        <h3 style={styles.statValue}>{value}</h3>
+        <p
+          style={{
+            ...styles.statTrend,
+            color: trend.includes("+") ? "#10b981" : "#64748b",
+          }}
+        >
+          {trend}
+        </p>
+      </div>
+      <div
+        style={{
+          ...styles.statIcon,
+          backgroundColor: `${color}20`,
+          color: color,
+        }}
+      >
+        {icon}
+      </div>
+    </div>
   </div>
 );
 
-// STYLES
+const TimelineItem = ({ time, title, desc, color }) => (
+  <div style={styles.timelineItem}>
+    <div style={{ ...styles.timelineDot, borderColor: color }}></div>
+    <div>
+      <p style={styles.timelineTime}>{time}</p>
+      <h5 style={styles.timelineTitle}>{title}</h5>
+      <p style={styles.timelineDesc}>{desc}</p>
+    </div>
+  </div>
+);
+
+// 💅 STYLES
 const styles = {
   container: {
-    backgroundColor: "#f0f2f5",
+    display: "flex",
     minHeight: "100vh",
+    backgroundColor: "#f1f5f9",
     fontFamily: "'Inter', sans-serif",
   },
-  navbar: {
+  sidebar: {
+    width: "280px",
+    backgroundColor: "#1e293b",
+    color: "#f8fafc",
+    padding: "24px",
+    display: "flex",
+    flexDirection: "column",
+    borderRight: "1px solid #334155",
+    position: "fixed",
+    height: "100vh",
+    overflowY: "auto",
+  },
+  content: { flex: 1, padding: "32px", marginLeft: "280px" },
+
+  // Sidebar Elements
+  logoContainer: {
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+    marginBottom: "40px",
+    paddingLeft: "10px",
+  },
+  logoIcon: { fontSize: "28px" },
+  logoText: {
+    fontSize: "20px",
+    fontWeight: "700",
+    letterSpacing: "-0.5px",
+    margin: 0,
+  },
+  menuGroup: { marginBottom: "24px" },
+  menuLabel: {
+    fontSize: "11px",
+    fontWeight: "700",
+    color: "#94a3b8",
+    marginBottom: "12px",
+    paddingLeft: "12px",
+    letterSpacing: "1px",
+  },
+  navBtn: {
+    width: "100%",
+    textAlign: "left",
+    padding: "12px 16px",
+    background: "transparent",
+    color: "#cbd5e1",
+    border: "none",
+    borderRadius: "8px",
+    cursor: "pointer",
+    fontSize: "14px",
+    fontWeight: "500",
+    transition: "all 0.2s",
+    display: "flex",
+    alignItems: "center",
+  },
+  navBtnActive: {
+    width: "100%",
+    textAlign: "left",
+    padding: "12px 16px",
+    background: "#3b82f6",
+    color: "white",
+    border: "none",
+    borderRadius: "8px",
+    cursor: "pointer",
+    fontSize: "14px",
+    fontWeight: "600",
+    display: "flex",
+    alignItems: "center",
+    boxShadow: "0 4px 6px -1px rgba(59, 130, 246, 0.5)",
+  },
+  logoutBtn: {
+    marginTop: "auto",
+    padding: "14px",
+    background: "#334155",
+    color: "#f8fafc",
+    border: "1px solid #475569",
+    borderRadius: "8px",
+    cursor: "pointer",
+    fontWeight: "600",
+    transition: "0.2s",
+  },
+
+  // Header
+  header: {
     display: "flex",
     justifyContent: "space-between",
-    padding: "0 30px",
-    height: "70px",
-    background: "#fff",
     alignItems: "center",
-    boxShadow: "0 2px 10px rgba(0,0,0,0.05)",
-    position: "sticky",
-    top: 0,
-    zIndex: 100,
+    marginBottom: "32px",
   },
-  brand: {
+  pageTitle: {
+    fontSize: "24px",
+    fontWeight: "700",
+    color: "#0f172a",
+    margin: 0,
+  },
+  headerActions: { display: "flex", alignItems: "center", gap: "20px" },
+  searchBar: {
     display: "flex",
     alignItems: "center",
-    gap: "10px",
+    background: "white",
+    padding: "10px 16px",
+    borderRadius: "50px",
+    boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+    border: "1px solid #e2e8f0",
+  },
+  headerSearch: {
+    border: "none",
+    outline: "none",
+    fontSize: "14px",
+    marginLeft: "8px",
+    width: "200px",
+  },
+  iconBtn: {
     fontSize: "20px",
+    cursor: "pointer",
+    background: "white",
+    padding: "10px",
+    borderRadius: "50%",
+    boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+    border: "1px solid #e2e8f0",
   },
-  logoIcon: { fontSize: "24px" },
-  navRight: { display: "flex", gap: "20px", alignItems: "center" },
-  adminProfile: {
+  profileBadge: {
     display: "flex",
     alignItems: "center",
-    gap: "10px",
-    fontWeight: "600",
-    color: "#333",
+    gap: "12px",
+    background: "white",
+    padding: "6px 16px 6px 6px",
+    borderRadius: "50px",
+    border: "1px solid #e2e8f0",
+    cursor: "pointer",
   },
   avatar: {
-    width: "35px",
-    height: "35px",
+    width: "36px",
+    height: "36px",
     borderRadius: "50%",
-    background: "#2c3e50",
-    color: "#fff",
+    background: "#3b82f6",
+    color: "white",
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
+    fontWeight: "700",
+    fontSize: "13px",
   },
-  logoutBtn: {
-    padding: "8px 16px",
-    background: "#ffebee",
-    color: "#c62828",
-    border: "none",
-    borderRadius: "6px",
-    cursor: "pointer",
-    fontWeight: "bold",
-  },
-  mainGrid: {
+  profileName: { fontSize: "14px", fontWeight: "600", color: "#0f172a" },
+  profileRole: { fontSize: "11px", color: "#64748b" },
+
+  // Cards & Grid
+  statGrid: {
     display: "grid",
-    gridTemplateColumns: "250px 1fr",
-    minHeight: "calc(100vh - 70px)",
-  },
-  sidebar: { background: "#2c3e50", color: "#ecf0f1", padding: "20px" },
-  menuLabel: {
-    fontSize: "12px",
-    color: "#95a5a6",
-    marginTop: "20px",
-    marginBottom: "10px",
-    fontWeight: "bold",
-  },
-  menuBtn: {
-    display: "block",
-    width: "100%",
-    padding: "12px 15px",
-    background: "transparent",
-    color: "#bdc3c7",
-    border: "none",
-    textAlign: "left",
-    cursor: "pointer",
-    borderRadius: "8px",
-    fontSize: "15px",
-    marginBottom: "5px",
-    transition: "0.2s",
-  },
-  menuBtnActive: {
-    display: "block",
-    width: "100%",
-    padding: "12px 15px",
-    background: "#34495e",
-    color: "#fff",
-    border: "none",
-    textAlign: "left",
-    cursor: "pointer",
-    borderRadius: "8px",
-    fontSize: "15px",
-    marginBottom: "5px",
-    fontWeight: "600",
-    borderLeft: "4px solid #3498db",
-  },
-  divider: { height: "1px", background: "#34495e", margin: "20px 0" },
-  content: { padding: "30px", overflowY: "auto" },
-  overviewGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-    gap: "20px",
-    marginBottom: "30px",
+    gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+    gap: "24px",
+    marginBottom: "32px",
   },
   statCard: {
-    background: "#fff",
-    padding: "20px",
+    background: "white",
+    padding: "24px",
+    borderRadius: "16px",
+    boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)",
+    border: "1px solid #f1f5f9",
+  },
+  statTitle: {
+    fontSize: "13px",
+    fontWeight: "600",
+    color: "#64748b",
+    margin: "0 0 8px 0",
+  },
+  statValue: {
+    fontSize: "28px",
+    fontWeight: "700",
+    color: "#0f172a",
+    margin: "0 0 8px 0",
+  },
+  statTrend: { fontSize: "12px", fontWeight: "500" },
+  statIcon: {
+    width: "48px",
+    height: "48px",
     borderRadius: "12px",
-    boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    fontSize: "20px",
   },
-  splitGrid: {
-    display: "grid",
-    gridTemplateColumns: "2fr 1fr",
-    gap: "20px",
-    gridColumn: "span 4",
+
+  splitGrid: { display: "grid", gridTemplateColumns: "2fr 1fr", gap: "24px" },
+  card: {
+    background: "white",
+    padding: "24px",
+    borderRadius: "16px",
+    boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)",
+    border: "1px solid #f1f5f9",
   },
-  actionArea: { display: "grid", gridTemplateColumns: "1fr 2fr", gap: "30px" },
-  formCard: {
-    background: "#fff",
-    padding: "25px",
-    borderRadius: "12px",
-    boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
-    height: "fit-content",
+  cardTitle: {
+    fontSize: "16px",
+    fontWeight: "700",
+    color: "#0f172a",
+    margin: "0 0 20px 0",
   },
-  form: { display: "flex", flexDirection: "column", gap: "15px" },
-  input: {
-    padding: "12px",
-    borderRadius: "6px",
-    border: "1px solid #ddd",
+
+  // Charts & Timeline
+  chartContainer: {
+    height: "200px",
+    display: "flex",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+    padding: "0 20px",
+  },
+  barWrapper: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    height: "100%",
+    justifyContent: "flex-end",
+    flex: 1,
+  },
+  bar: {
+    width: "24px",
+    background: "#3b82f6",
+    borderRadius: "4px 4px 0 0",
+    transition: "height 0.5s ease",
+  },
+  barLabel: {
+    marginTop: "8px",
+    fontSize: "12px",
+    color: "#64748b",
+    fontWeight: "500",
+  },
+
+  timeline: {
+    paddingLeft: "10px",
+    borderLeft: "2px solid #e2e8f0",
+    marginLeft: "10px",
+  },
+  timelineItem: {
+    position: "relative",
+    paddingLeft: "24px",
+    marginBottom: "24px",
+  },
+  timelineDot: {
+    width: "12px",
+    height: "12px",
+    borderRadius: "50%",
+    background: "white",
+    border: "3px solid",
+    position: "absolute",
+    left: "-7px",
+    top: "0",
+  },
+  timelineTime: {
+    fontSize: "11px",
+    fontWeight: "600",
+    color: "#94a3b8",
+    marginBottom: "4px",
+  },
+  timelineTitle: {
     fontSize: "14px",
-    width: "100%",
-    boxSizing: "border-box",
+    fontWeight: "600",
+    color: "#334155",
+    margin: 0,
+  },
+  timelineDesc: { fontSize: "13px", color: "#64748b", margin: "4px 0 0 0" },
+
+  // Forms
+  formCard: {
+    background: "white",
+    padding: "24px",
+    borderRadius: "16px",
+    boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)",
+    height: "fit-content",
+    flex: 1,
+  },
+  form: { display: "flex", flexDirection: "column", gap: "16px" },
+  inputGroup: { display: "flex", flexDirection: "column", gap: "6px" },
+  label: { fontSize: "13px", fontWeight: "600", color: "#475569" },
+  input: {
+    padding: "10px 14px",
+    borderRadius: "8px",
+    border: "1px solid #e2e8f0",
+    fontSize: "14px",
+    outline: "none",
+    transition: "border 0.2s",
   },
   select: {
-    padding: "12px",
-    borderRadius: "6px",
-    border: "1px solid #ddd",
+    padding: "10px 14px",
+    borderRadius: "8px",
+    border: "1px solid #e2e8f0",
     fontSize: "14px",
-    background: "#fff",
-    width: "100%",
-    boxSizing: "border-box",
+    outline: "none",
+    background: "white",
   },
-  submitBtn: {
-    padding: "12px",
-    background: "#27ae60",
-    color: "#fff",
+  textarea: {
+    padding: "10px 14px",
+    borderRadius: "8px",
+    border: "1px solid #e2e8f0",
+    fontSize: "14px",
+    outline: "none",
+    resize: "vertical",
+  },
+  formActions: { display: "flex", gap: "12px", marginTop: "10px" },
+  primaryBtn: {
+    padding: "10px 20px",
+    background: "#0f172a",
+    color: "white",
+    borderRadius: "8px",
     border: "none",
-    borderRadius: "6px",
-    fontWeight: "bold",
+    fontWeight: "600",
     cursor: "pointer",
-    marginTop: "10px",
+    fontSize: "14px",
   },
-  cancelBtn: {
-    padding: "12px",
-    background: "#95a5a6",
-    color: "#fff",
-    border: "none",
-    borderRadius: "6px",
-    fontWeight: "bold",
+  secondaryBtn: {
+    padding: "10px 20px",
+    background: "white",
+    color: "#475569",
+    borderRadius: "8px",
+    border: "1px solid #e2e8f0",
+    fontWeight: "600",
     cursor: "pointer",
-    marginTop: "5px",
+    fontSize: "14px",
   },
+
+  // Tables
   tableCard: {
-    background: "#fff",
-    padding: "25px",
-    borderRadius: "12px",
-    boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+    background: "white",
+    padding: "0",
+    borderRadius: "16px",
+    boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)",
+    flex: 2,
+    overflow: "hidden",
   },
   tableHeader: {
+    padding: "20px 24px",
+    borderBottom: "1px solid #f1f5f9",
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: "20px",
   },
   searchInput: {
-    padding: "10px",
-    width: "250px",
+    padding: "8px 16px",
     borderRadius: "6px",
-    border: "1px solid #ddd",
+    border: "1px solid #e2e8f0",
+    fontSize: "13px",
+    width: "220px",
   },
+  tableWrapper: { padding: "0" },
   table: { width: "100%", borderCollapse: "collapse" },
-  trHead: {
-    background: "#f8f9fa",
-    borderBottom: "2px solid #e9ecef",
-    textAlign: "left",
+  trHead: { background: "#f8fafc", textAlign: "left" },
+  tr: { borderBottom: "1px solid #f1f5f9", transition: "background 0.1s" },
+  td: {
+    padding: "16px 24px",
+    fontSize: "14px",
+    color: "#334155",
+    verticalAlign: "middle",
   },
-  tr: { borderBottom: "1px solid #f1f2f6" },
-  td: { padding: "12px", verticalAlign: "middle" },
+  userCell: { display: "flex", alignItems: "center", gap: "12px" },
+  userAvatar: {
+    width: "32px",
+    height: "32px",
+    borderRadius: "50%",
+    background: "#e2e8f0",
+    color: "#64748b",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    fontSize: "12px",
+    fontWeight: "700",
+  },
+  userName: { fontWeight: "600", color: "#0f172a" },
   badge: {
     padding: "4px 10px",
-    borderRadius: "12px",
-    background: "#e3f2fd",
-    color: "#1565c0",
+    borderRadius: "20px",
+    background: "#f1f5f9",
+    color: "#475569",
     fontSize: "12px",
-    fontWeight: "bold",
+    fontWeight: "600",
+    border: "1px solid #e2e8f0",
   },
-  statusGreen: {
-    color: "#27ae60",
-    fontWeight: "bold",
-    background: "#eafaf1",
-    padding: "4px 8px",
-    borderRadius: "4px",
+  statusSuccess: {
+    padding: "4px 10px",
+    borderRadius: "20px",
+    background: "#dcfce7",
+    color: "#166534",
+    fontSize: "12px",
+    fontWeight: "600",
   },
-  statusRed: {
-    color: "#e74c3c",
-    fontWeight: "bold",
-    background: "#fdedec",
-    padding: "4px 8px",
-    borderRadius: "4px",
+  statusWarning: {
+    padding: "4px 10px",
+    borderRadius: "20px",
+    background: "#fee2e2",
+    color: "#991b1b",
+    fontSize: "12px",
+    fontWeight: "600",
   },
-  actionBtn: {
-    border: "none",
+  iconAction: {
     background: "none",
+    border: "none",
     cursor: "pointer",
     fontSize: "16px",
-    marginRight: "10px",
-  },
-  payBtn: {
-    background: "#f39c12",
-    color: "#fff",
-    border: "none",
-    padding: "5px 10px",
+    padding: "4px",
     borderRadius: "4px",
-    cursor: "pointer",
+    color: "#64748b",
+  },
+
+  // Finance & Notices
+  secondaryBtnSm: {
+    padding: "6px 12px",
+    background: "#fff",
+    border: "1px solid #e2e8f0",
+    borderRadius: "6px",
     fontSize: "12px",
+    fontWeight: "600",
+    cursor: "pointer",
+    color: "#475569",
+  },
+  successBtnSm: {
+    padding: "6px 12px",
+    background: "#f0fdf4",
+    border: "1px solid #dcfce7",
+    borderRadius: "6px",
+    fontSize: "12px",
+    fontWeight: "600",
+    cursor: "pointer",
+    color: "#166534",
+  },
+  noticeList: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "12px",
+    padding: "24px",
   },
   noticeItem: {
     display: "flex",
+    gap: "16px",
+    padding: "16px",
+    background: "#f8fafc",
+    borderRadius: "12px",
+    border: "1px solid #f1f5f9",
+    alignItems: "center",
+  },
+  noticeIcon: {
+    width: "40px",
+    height: "40px",
+    background: "#e0f2fe",
+    color: "#0369a1",
+    borderRadius: "10px",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    fontSize: "18px",
+  },
+  noticeTitle: {
+    fontSize: "14px",
+    fontWeight: "600",
+    color: "#0f172a",
+    margin: "0 0 4px 0",
+  },
+  noticeMeta: { fontSize: "12px", color: "#64748b", margin: 0 },
+
+  // Settings
+  settingsGrid: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: "24px",
+  },
+  toggleRow: {
+    gridColumn: "1 / -1",
+    display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: "15px",
-    borderBottom: "1px solid #eee",
+    padding: "16px",
+    background: "#f8fafc",
+    borderRadius: "12px",
+    border: "1px solid #f1f5f9",
   },
-  deleteLink: {
-    color: "red",
-    background: "none",
-    border: "none",
-    cursor: "pointer",
-    fontSize: "12px",
-  },
-  chartPlaceholder: {
-    display: "flex",
-    alignItems: "flex-end",
-    height: "150px",
-    gap: "20px",
-    marginTop: "20px",
-    justifyContent: "space-around",
-  },
-  bar: { width: "15%", background: "#3498db", borderRadius: "5px" },
-  activityList: { listStyle: "none", padding: 0, marginTop: "10px" },
-  activityItem: {
-    padding: "10px 0",
-    borderBottom: "1px dashed #eee",
+  settingTitle: {
     fontSize: "14px",
-    display: "flex",
-    justifyContent: "space-between",
+    fontWeight: "600",
+    color: "#0f172a",
+    margin: 0,
   },
-  time: { color: "#3498db", fontWeight: "bold", fontSize: "12px" },
+  settingDesc: { fontSize: "13px", color: "#64748b", margin: "4px 0 0 0" },
   toggleOn: {
-    padding: "8px 15px",
-    background: "#e74c3c",
-    color: "#fff",
-    border: "none",
+    width: "44px",
+    height: "24px",
+    background: "#3b82f6",
     borderRadius: "20px",
+    border: "none",
     cursor: "pointer",
-    fontWeight: "bold",
+    position: "relative",
+    transition: "0.2s",
   },
   toggleOff: {
-    padding: "8px 15px",
-    background: "#2ecc71",
-    color: "#fff",
-    border: "none",
+    width: "44px",
+    height: "24px",
+    background: "#cbd5e1",
     borderRadius: "20px",
+    border: "none",
     cursor: "pointer",
-    fontWeight: "bold",
+    position: "relative",
+    transition: "0.2s",
+  },
+  toggleKnobOn: {
+    width: "18px",
+    height: "18px",
+    background: "white",
+    borderRadius: "50%",
+    position: "absolute",
+    top: "3px",
+    right: "3px",
+    transition: "0.2s",
+  },
+  toggleKnobOff: {
+    width: "18px",
+    height: "18px",
+    background: "white",
+    borderRadius: "50%",
+    position: "absolute",
+    top: "3px",
+    left: "3px",
+    transition: "0.2s",
   },
 };
 
