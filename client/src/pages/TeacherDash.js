@@ -2,6 +2,16 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
+// 📚 MOVED OUTSIDE: Fixes the ESLint "Missing Dependency" Warning
+const SUBJECT_LIST = [
+  "AWS Cloud Essentials",
+  "Computer Graphics and Multimedia Systems",
+  "Cryptography and Data Security",
+  "Software Quality Management",
+  "Enterprise Resource Planning Concepts",
+  "Cyber Law and Forensics",
+];
+
 const TeacherDash = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -9,16 +19,6 @@ const TeacherDash = () => {
   // 🔒 REAL BACKEND URL
   const SERVER_URL =
     "https://student-management-system-server-vygt.onrender.com";
-
-  // 📚 REAL SUBJECT LIST (From your screenshot)
-  const SUBJECT_LIST = [
-    "AWS Cloud Essentials",
-    "Computer Graphics and Multimedia Systems",
-    "Cryptography and Data Security",
-    "Software Quality Management",
-    "Enterprise Resource Planning Concepts",
-    "Cyber Law and Forensics",
-  ];
 
   // 👤 IDENTITY STATE
   const [teacher, setTeacher] = useState({
@@ -33,7 +33,7 @@ const TeacherDash = () => {
   const [marks, setMarks] = useState({});
 
   // UI States
-  const [selectedSubject, setSelectedSubject] = useState(SUBJECT_LIST[1]); // Default to CG
+  const [selectedSubject, setSelectedSubject] = useState(SUBJECT_LIST[1]);
   const [selectedDate, setSelectedDate] = useState(
     new Date().toISOString().split("T")[0]
   );
@@ -96,7 +96,7 @@ const TeacherDash = () => {
     };
 
     fetchStudents();
-  }, [navigate]);
+  }, [navigate]); // ✅ SUBJECT_LIST is outside, so no warning needed here
 
   const initializeAttendance = (data) => {
     const initial = {};
@@ -197,7 +197,7 @@ const TeacherDash = () => {
           />
         </div>
 
-        {/* 🔵 MAIN CONTENT */}
+        {/* 🔵 CONTENT */}
         <div style={styles.content}>
           {/* 1️⃣ DASHBOARD TAB */}
           {activeTab === "dashboard" && (
@@ -293,7 +293,7 @@ const TeacherDash = () => {
                     style={styles.input}
                   />
 
-                  {/* ✅ UPDATED REAL SUBJECTS DROPDOWN */}
+                  {/* ✅ REAL SUBJECTS DROPDOWN */}
                   <select
                     value={selectedSubject}
                     onChange={(e) => setSelectedSubject(e.target.value)}
