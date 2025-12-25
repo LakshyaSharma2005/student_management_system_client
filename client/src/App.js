@@ -1,13 +1,13 @@
-import React, { useContext } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthContext } from './context/AuthContext';
+import React, { useContext } from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthContext } from "./context/AuthContext";
 
 // Import Pages
-import Login from './pages/Login';
-import AdminDash from './pages/AdminDash';
-import TeacherDash from './pages/TeacherDash';
-import StudentDash from './pages/StudentDash';
-import Unauthorized from './pages/Unauthorized';
+import Login from "./pages/Login";
+import AdminDash from "./pages/AdminDash";
+import TeacherDash from "./pages/TeacherDash";
+import StudentDash from "./pages/StudentDash";
+import Unauthorized from "./pages/Unauthorized";
 
 // 1. Protected Route Wrapper Component
 const ProtectedRoute = ({ children, role }) => {
@@ -39,33 +39,33 @@ function App() {
         <Route path="/unauthorized" element={<Unauthorized />} />
 
         {/* Admin Routes - MATCHING LOGIN.JS PATHS */}
-        <Route 
-          path="/admin-dash" 
+        <Route
+          path="/admin-dash"
           element={
             <ProtectedRoute role="Admin">
               <AdminDash />
             </ProtectedRoute>
-          } 
+          }
         />
 
         {/* Teacher Routes - MATCHING LOGIN.JS PATHS */}
-        <Route 
-          path="/teacher-dash" 
+        <Route
+          path="/teacher-dash"
           element={
             <ProtectedRoute role="Teacher">
               <TeacherDash />
             </ProtectedRoute>
-          } 
+          }
         />
 
         {/* Student Routes - MATCHING LOGIN.JS PATHS */}
-        <Route 
-          path="/student-dash" 
+        <Route
+          path="/student-dash"
           element={
             <ProtectedRoute role="Student">
               <StudentDash />
             </ProtectedRoute>
-          } 
+          }
         />
 
         {/* Default Redirects */}

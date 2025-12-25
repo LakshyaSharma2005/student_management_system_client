@@ -4,8 +4,15 @@ import { useNavigate } from 'react-router-dom';
 
 const TeacherDash = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('dashboard'); // dashboard, attendance, marks, students
+  const [activeTab, setActiveTab] = useState('dashboard'); 
   
+  // 👤 IDENTITY STATE (New)
+  const [teacher, setTeacher] = useState({ 
+    name: 'Professor', 
+    email: '', 
+    subject: 'General' 
+  });
+
   // Data States
   const [students, setStudents] = useState([]);
   const [attendance, setAttendance] = useState({});
@@ -16,8 +23,24 @@ const TeacherDash = () => {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [message, setMessage] = useState('');
 
-  // 🔄 Initial Load
+  // 🔄 Initial Load (User Profile + Students)
   useEffect(() => {
+    // 1. Load Teacher Profile from LocalStorage
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      setTeacher({
+        name: user.name,
+        email: user.email,
+        subject: user.subject || 'Assigned Subject'
+      });
+      // Set default subject drop-down to teacher's subject
+      if (user.subject) setSelectedSubject(user.subject);
+    } else {
+      navigate('/'); // Redirect if not logged in
+    }
+
+    // 2. Fetch Students
     const fetchStudents = async () => {
       try {
         const token = localStorage.getItem('token');
@@ -32,7 +55,6 @@ const TeacherDash = () => {
         }
       } catch (err) {
         console.log("Using Demo Data");
-        // Fallback Demo Data
         const demoData = [
           { _id: 1, name: "Lakshya Sharma", roll: "CS-101", email: "lakshya@cpu.edu" },
           { _id: 2, name: "Rohan Das", roll: "CS-102", email: "rohan@cpu.edu" },
@@ -45,7 +67,7 @@ const TeacherDash = () => {
     };
 
     fetchStudents();
-  }, []);
+  }, [navigate]);
 
   const initializeAttendance = (data) => {
     const initial = {};
@@ -99,8 +121,9 @@ const TeacherDash = () => {
         </div>
         <div style={styles.navRight}>
           <div style={styles.profile}>
-            <div style={styles.avatarNav}>T</div>
-            <span>Prof. User</span>
+            {/* 🛠️ FIX: Dynamic Avatar and Name */}
+            <div style={styles.avatarNav}>{teacher.name.charAt(0)}</div>
+            <span>{teacher.name}</span>
           </div>
           <button onClick={() => {localStorage.removeItem('token'); navigate('/')}} style={styles.logoutBtn}>Logout</button>
         </div>
@@ -122,10 +145,16 @@ const TeacherDash = () => {
           {/* 1️⃣ DASHBOARD TAB */}
           {activeTab === 'dashboard' && (
             <>
+              {/* 🛠️ FIX: Added Welcome Header */}
+              <div style={{marginBottom: '20px'}}>
+                <h2 style={{color: '#2c3e50'}}>Welcome back, {teacher.name}! 👋</h2>
+                <p style={{color: '#7f8c8d'}}>Subject: <b>{teacher.subject}</b></p>
+              </div>
+
               <div style={styles.overviewGrid}>
                 <StatCard title="Total Students" value={students.length} color="#3498db" />
                 <StatCard title="Avg. Attendance" value={`${attendancePercent}%`} color="#2ecc71" />
-                <StatCard title="Upcoming Class" value="10:00 AM" sub="Data Structures" color="#9b59b6" />
+                <StatCard title="Upcoming Class" value="10:00 AM" sub={teacher.subject} color="#9b59b6" />
               </div>
               
               <div style={styles.sectionGrid}>
@@ -134,7 +163,7 @@ const TeacherDash = () => {
                   <div style={styles.scheduleItem}>
                     <div style={styles.timeBadge}>09:00 AM</div>
                     <div>
-                      <strong>Computer Networks</strong>
+                      <strong>{teacher.subject}</strong>
                       <p style={{fontSize: '12px', color: '#666'}}>Lab 2, Block A</p>
                     </div>
                   </div>
@@ -164,6 +193,7 @@ const TeacherDash = () => {
                 <div style={styles.controls}>
                   <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} style={styles.input} />
                   <select value={selectedSubject} onChange={e => setSelectedSubject(e.target.value)} style={styles.select}>
+                    <option>{teacher.subject}</option>
                     <option>Computer Science</option>
                     <option>Physics</option>
                     <option>Mathematics</option>
@@ -174,11 +204,11 @@ const TeacherDash = () => {
               {message && <div style={styles.successMsg}>{message}</div>}
 
               <div style={styles.toolbar}>
-                 <span>Summary: <strong style={{color: '#27ae60'}}>{presentCount} Present</strong> / <strong style={{color: '#c0392b'}}>{students.length - presentCount} Absent</strong></span>
-                 <div style={{display: 'flex', gap: '10px'}}>
-                   <button onClick={() => markAll('Present')} style={styles.smallBtn}>Mark All Present</button>
-                   <button onClick={() => markAll('Absent')} style={{...styles.smallBtn, background: '#fee', color: 'red'}}>Mark All Absent</button>
-                 </div>
+                  <span>Summary: <strong style={{color: '#27ae60'}}>{presentCount} Present</strong> / <strong style={{color: '#c0392b'}}>{students.length - presentCount} Absent</strong></span>
+                  <div style={{display: 'flex', gap: '10px'}}>
+                    <button onClick={() => markAll('Present')} style={styles.smallBtn}>Mark All Present</button>
+                    <button onClick={() => markAll('Absent')} style={{...styles.smallBtn, background: '#fee', color: 'red'}}>Mark All Absent</button>
+                  </div>
               </div>
 
               <div style={styles.gridList}>
