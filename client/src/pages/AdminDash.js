@@ -45,7 +45,7 @@ const COURSE_OPTIONS = [
 const AdminDash = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("overview");
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true); // 🟢 NEW: Sidebar Toggle State
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   const SERVER_URL =
     "https://student-management-system-server-vygt.onrender.com";
@@ -201,70 +201,74 @@ const AdminDash = () => {
 
   return (
     <div style={styles.container}>
-      {/* 🌑 SIDEBAR (Collapsible) */}
+      {/* 🌑 SIDEBAR */}
       <div
         style={{
           ...styles.sidebar,
-          width: isSidebarOpen ? "280px" : "0", // 🟢 Toggle Width
-          padding: isSidebarOpen ? "24px" : "0", // 🟢 Hide Padding when closed
+          width: isSidebarOpen ? "280px" : "0px",
+          padding: isSidebarOpen ? "24px" : "0px",
+          opacity: isSidebarOpen ? 1 : 0,
         }}
       >
         <div style={styles.logoContainer}>
           <div style={styles.logoIcon}>⚡</div>
-          {/* 🟢 RENAMED TO ADMIN PANEL */}
           <h2 style={styles.logoText}>
             Admin <span style={{ color: "#3b82f6" }}>Panel</span>
           </h2>
         </div>
 
-        <div style={styles.menuGroup}>
-          <p style={styles.menuLabel}>DASHBOARD</p>
-          <NavBtn
-            icon="📊"
-            label="Overview"
-            active={activeTab === "overview"}
-            onClick={() => setActiveTab("overview")}
-          />
-          <NavBtn
-            icon="📢"
-            label="Announcements"
-            active={activeTab === "notices"}
-            onClick={() => setActiveTab("notices")}
-          />
+        {/* 📜 SCROLLABLE MENU SECTION (Fixes Button Cutoff) */}
+        <div style={styles.scrollableMenu}>
+          <div style={styles.menuGroup}>
+            <p style={styles.menuLabel}>DASHBOARD</p>
+            <NavBtn
+              icon="📊"
+              label="Overview"
+              active={activeTab === "overview"}
+              onClick={() => setActiveTab("overview")}
+            />
+            <NavBtn
+              icon="📢"
+              label="Announcements"
+              active={activeTab === "notices"}
+              onClick={() => setActiveTab("notices")}
+            />
+          </div>
+
+          <div style={styles.menuGroup}>
+            <p style={styles.menuLabel}>ACADEMIC</p>
+            <NavBtn
+              icon="👨‍🎓"
+              label="Students"
+              active={activeTab === "students"}
+              onClick={() => setActiveTab("students")}
+            />
+            <NavBtn
+              icon="👨‍🏫"
+              label="Faculty"
+              active={activeTab === "teachers"}
+              onClick={() => setActiveTab("teachers")}
+            />
+            <NavBtn
+              icon="💳"
+              label="Finance"
+              active={activeTab === "finance"}
+              onClick={() => setActiveTab("finance")}
+            />
+          </div>
+
+          <div style={styles.menuGroup}>
+            <p style={styles.menuLabel}>ADMINISTRATION</p>
+            <NavBtn
+              icon="⚙️"
+              label="Settings"
+              active={activeTab === "settings"}
+              onClick={() => setActiveTab("settings")}
+            />
+          </div>
         </div>
 
-        <div style={styles.menuGroup}>
-          <p style={styles.menuLabel}>ACADEMIC</p>
-          <NavBtn
-            icon="👨‍🎓"
-            label="Students"
-            active={activeTab === "students"}
-            onClick={() => setActiveTab("students")}
-          />
-          <NavBtn
-            icon="👨‍🏫"
-            label="Faculty"
-            active={activeTab === "teachers"}
-            onClick={() => setActiveTab("teachers")}
-          />
-          <NavBtn
-            icon="💳"
-            label="Finance"
-            active={activeTab === "finance"}
-            onClick={() => setActiveTab("finance")}
-          />
-        </div>
-
-        <div style={styles.menuGroup}>
-          <p style={styles.menuLabel}>ADMINISTRATION</p>
-          <NavBtn
-            icon="⚙️"
-            label="Settings"
-            active={activeTab === "settings"}
-            onClick={() => setActiveTab("settings")}
-          />
-        </div>
-
+        {/* 🚪 FIXED BOTTOM BUTTON */}
         <button
           onClick={() => {
             localStorage.removeItem("token");
@@ -276,17 +280,16 @@ const AdminDash = () => {
         </button>
       </div>
 
-      {/* ⚪ MAIN CONTENT (Expands when Sidebar closes) */}
+      {/* ⚪ MAIN CONTENT */}
       <div
         style={{
           ...styles.content,
-          marginLeft: isSidebarOpen ? "280px" : "0", // 🟢 Smooth Push Effect
+          marginLeft: isSidebarOpen ? "280px" : "0px", // 🟢 Pushes Content Correctly
         }}
       >
         {/* TOP HEADER */}
         <div style={styles.header}>
           <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
-            {/* 🟢 HAMBURGER ICON */}
             <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
               style={styles.hamburgerBtn}
@@ -410,7 +413,6 @@ const AdminDash = () => {
               flexDirection: "column",
             }}
           >
-            {/* FORM CARD */}
             <div style={styles.formCard}>
               <h3 style={styles.cardTitle}>
                 {isEditing
@@ -523,7 +525,6 @@ const AdminDash = () => {
               </form>
             </div>
 
-            {/* TABLE CARD */}
             <div style={styles.tableCard}>
               <div style={styles.tableHeader}>
                 <h3 style={styles.cardTitle}>Directory</h3>
@@ -850,14 +851,14 @@ const TimelineItem = ({ time, title, desc, color }) => (
 
 // 💅 STYLES
 const styles = {
+  // 🟢 CONTAINER: Standard Block flow
   container: {
-    display: "flex",
     minHeight: "100vh",
     backgroundColor: "#f1f5f9",
     fontFamily: "'Inter', sans-serif",
   },
 
-  // 🟢 SIDEBAR (Now Fixed & Animated)
+  // 🟢 SIDEBAR: Fixed, Flex Column, High Z-Index
   sidebar: {
     backgroundColor: "#1e293b",
     color: "#f8fafc",
@@ -869,17 +870,19 @@ const styles = {
     left: 0,
     height: "100vh",
     zIndex: 1000,
-    overflowX: "hidden", // Hide content when collapsed
-    whiteSpace: "nowrap", // Prevent text wrap
-    transition: "width 0.3s ease", // 🟢 Smooth Transition
+    overflow: "hidden",
+    whiteSpace: "nowrap",
+    transition: "width 0.3s ease, padding 0.3s ease, opacity 0.3s ease",
   },
 
-  // 🟢 MAIN CONTENT (Pushed by Sidebar)
+  // 🟢 NEW: Scrollable Menu Area (Keeps Logout Button at Bottom)
+  scrollableMenu: { flex: 1, overflowY: "auto", overflowX: "hidden" },
+
+  // 🟢 MAIN CONTENT: Margin Left pushes it away from sidebar
   content: {
-    flex: 1,
     padding: "32px",
-    transition: "margin-left 0.3s ease", // 🟢 Smooth Push Effect
-    width: "100%",
+    transition: "margin-left 0.3s ease",
+    width: "auto",
   },
 
   // Sidebar Elements
@@ -887,7 +890,7 @@ const styles = {
     display: "flex",
     alignItems: "center",
     gap: "12px",
-    marginBottom: "40px",
+    marginBottom: "30px",
     paddingLeft: "10px",
   },
   logoIcon: { fontSize: "28px" },
@@ -946,6 +949,7 @@ const styles = {
     cursor: "pointer",
     fontWeight: "600",
     transition: "0.2s",
+    marginBottom: "10px",
   },
 
   // Header
@@ -967,8 +971,8 @@ const styles = {
     fontSize: "24px",
     cursor: "pointer",
     color: "#334155",
-    marginRight: "10px",
-  }, // 🟢 NEW
+    marginRight: "15px",
+  },
   headerActions: { display: "flex", alignItems: "center", gap: "20px" },
   searchBar: {
     display: "flex",
@@ -1148,7 +1152,7 @@ const styles = {
     display: "grid",
     gridTemplateColumns: "1fr 1fr",
     gap: "16px",
-  }, // 🟢 Side-by-side inputs
+  },
   inputGroup: { display: "flex", flexDirection: "column", gap: "6px" },
   label: { fontSize: "13px", fontWeight: "600", color: "#475569" },
   input: {
@@ -1405,3 +1409,4 @@ const styles = {
 };
 
 export default AdminDash;
+  
