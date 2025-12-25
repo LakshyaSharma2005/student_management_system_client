@@ -4,50 +4,75 @@ import { useNavigate } from "react-router-dom";
 
 const StudentDash = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("fees"); // Default to fees to show the feature
+  const [activeTab, setActiveTab] = useState("fees");
+
+  // 🔒 REAL BACKEND URL
+  const SERVER_URL =
+    "https://student-management-system-server-vygt.onrender.com";
 
   // Data States
   const [student, setStudent] = useState({
     name: "Student",
     email: "",
-    course: "B.Tech",
+    course: "BCA",
     roll: "Unknown",
+    fees: "Pending",
   });
+
   const [attendance, setAttendance] = useState([]);
   const [marks, setMarks] = useState([]);
-  const [fees, setFees] = useState({
+
+  // Fee Logic
+  const [feeDetails, setFeeDetails] = useState({
     status: "Pending",
-    amount: 50000,
+    amount: 28000,
     due: "2025-01-15",
   });
+
   const [loadingPay, setLoadingPay] = useState(false);
 
   // 🔄 Initial Load
   useEffect(() => {
     const loadData = async () => {
-      // 1. Load User Info
-      const user = JSON.parse(localStorage.getItem("user"));
-      if (user) {
+      // 1. Load User Info from LocalStorage
+      const userStr = localStorage.getItem("user");
+      const token = localStorage.getItem("token");
+
+      if (userStr) {
+        const user = JSON.parse(userStr);
         setStudent((prev) => ({
           ...prev,
           name: user.name,
           email: user.email,
-          roll: "CS-2025-001",
+          course: user.course || "BCA",
+          fees: user.fees || "Pending",
         }));
+        setFeeDetails((prev) => ({ ...prev, status: user.fees || "Pending" }));
+      } else {
+        navigate("/");
       }
 
-      // 2. Fetch or Mock Data
+      // 2. ATTEMPT TO FETCH REAL DATA
       try {
-        const token = localStorage.getItem("token");
-        const res = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/student/attendance`,
-          {
-            headers: { Authorization: token },
-          }
-        );
-        setAttendance(res.data);
+        if (!token) throw new Error("No Token");
+
+        // ✅ Now actually using axios and SERVER_URL (Fixes the warning)
+        console.log("📡 Fetching attendance from:", SERVER_URL);
+
+        const res = await axios.get(`${SERVER_URL}/api/student/attendance`, {
+          headers: { Authorization: token },
+        });
+
+        // If we get real data, use it. If array is empty, throw error to use mock data.
+        if (res.data && res.data.length > 0) {
+          setAttendance(res.data);
+        } else {
+          throw new Error("No attendance records found");
+        }
       } catch (err) {
-        console.log("Using Demo Data");
+        console.warn("⚠️ Switching to Demo Data:", err.message);
+
+        // 3. FALLBACK: MOCK DATA (Runs if server is empty or error)
         setAttendance([
           {
             date: "2025-12-01",
@@ -72,25 +97,25 @@ const StudentDash = () => {
       }
     };
     loadData();
-  }, []);
+  }, [navigate]);
 
   // 💳 MOCK PAYMENT HANDLER
   const handleMockPayment = () => {
     const confirm = window.confirm(
-      "Proceed to Secure Payment Gateway for ₹50,000?"
+      `Proceed to Secure Payment Gateway for ₹${feeDetails.amount.toLocaleString()}?`
     );
     if (confirm) {
       setLoadingPay(true);
-      // Simulate network delay
       setTimeout(() => {
-        setFees((prev) => ({ ...prev, status: "Paid" }));
+        setFeeDetails((prev) => ({ ...prev, status: "Paid" }));
+        setStudent((prev) => ({ ...prev, fees: "Paid" }));
         setLoadingPay(false);
-        alert("✅ Payment Successful! Transaction ID: TXN_99887766");
+        alert("✅ Payment Successful! Receipt sent to email.");
       }, 2000);
     }
   };
 
-  // 📊 Calculate Stats
+  // Stats
   const totalClasses = attendance.length;
   const presentCount = attendance.filter((r) => r.status === "Present").length;
   const percentage =
@@ -98,7 +123,7 @@ const StudentDash = () => {
 
   return (
     <div style={styles.container}>
-      {/* 🟢 TOP NAVBAR */}
+      {/* NAVBAR */}
       <div style={styles.navbar}>
         <div style={styles.brand}>
           <span style={styles.logoIcon}>🎓</span>
@@ -124,7 +149,7 @@ const StudentDash = () => {
       </div>
 
       <div style={styles.mainGrid}>
-        {/* 🟡 SIDEBAR */}
+        {/* SIDEBAR */}
         <div style={styles.sidebar}>
           <p style={styles.menuLabel}>ACADEMIC</p>
           <NavBtn
@@ -149,12 +174,10 @@ const StudentDash = () => {
           />
         </div>
 
-        {/* 🔵 MAIN CONTENT */}
+        {/* CONTENT */}
         <div style={styles.content}>
-          {/* 1️⃣ DASHBOARD TAB */}
           {activeTab === "dashboard" && (
             <>
-              {/* Profile Header */}
               <div style={styles.welcomeCard}>
                 <div style={styles.welcomeText}>
                   <h1>Welcome back, {student.name}! 👋</h1>
@@ -168,8 +191,6 @@ const StudentDash = () => {
                   </p>
                 </div>
               </div>
-
-              {/* Stats Row */}
               <div style={styles.overviewGrid}>
                 <StatCard
                   title="Overall Attendance"
@@ -179,12 +200,10 @@ const StudentDash = () => {
                 <StatCard title="CGPA" value="9.2" color="#f1c40f" />
                 <StatCard
                   title="Fee Status"
-                  value={fees.status}
-                  color={fees.status === "Paid" ? "#2ecc71" : "#e74c3c"}
+                  value={student.fees}
+                  color={student.fees === "Paid" ? "#2ecc71" : "#e74c3c"}
                 />
               </div>
-
-              {/* Recent Activity */}
               <div style={styles.card}>
                 <h3>📅 Recent Attendance</h3>
                 <div style={styles.activityList}>
@@ -231,25 +250,14 @@ const StudentDash = () => {
             </>
           )}
 
-          {/* 2️⃣ ATTENDANCE TAB */}
           {activeTab === "attendance" && (
             <div style={styles.card}>
               <div style={styles.cardHeader}>
                 <h3>📝 Full Attendance Record</h3>
-                <div style={styles.progressBarBg}>
-                  <div
-                    style={{
-                      ...styles.progressBarFill,
-                      width: `${percentage}%`,
-                      background: percentage > 75 ? "#2ecc71" : "#e74c3c",
-                    }}
-                  ></div>
-                </div>
                 <span style={{ fontWeight: "bold" }}>
                   {percentage}% Present
                 </span>
               </div>
-
               <table style={styles.table}>
                 <thead>
                   <tr style={styles.trHead}>
@@ -283,7 +291,6 @@ const StudentDash = () => {
             </div>
           )}
 
-          {/* 3️⃣ MARKS TAB */}
           {activeTab === "marks" && (
             <div style={styles.card}>
               <h3>🏅 Examination Results</h3>
@@ -291,8 +298,6 @@ const StudentDash = () => {
                 <thead>
                   <tr style={styles.trHead}>
                     <th>Subject</th>
-                    <th>Mid Term (50)</th>
-                    <th>Final (100)</th>
                     <th>Total</th>
                     <th>Grade</th>
                   </tr>
@@ -303,8 +308,6 @@ const StudentDash = () => {
                       <td style={styles.td}>
                         <b>{m.subject}</b>
                       </td>
-                      <td style={styles.td}>{m.mid}</td>
-                      <td style={styles.td}>{m.final}</td>
                       <td style={styles.td}>
                         <strong>{m.mid + m.final}</strong>/150
                       </td>
@@ -318,27 +321,24 @@ const StudentDash = () => {
             </div>
           )}
 
-          {/* 4️⃣ FEES TAB */}
           {activeTab === "fees" && (
             <div style={styles.feeCard}>
               <div style={styles.feeHeader}>
-                <div>
-                  <h3>💰 Semester Fees</h3>
-                  <p>Due Date: {fees.due}</p>
-                </div>
+                <h3>💰 Semester Fees</h3>
                 <div
                   style={
-                    fees.status === "Paid" ? styles.paidStamp : styles.dueStamp
+                    feeDetails.status === "Paid"
+                      ? styles.paidStamp
+                      : styles.dueStamp
                   }
                 >
-                  {fees.status.toUpperCase()}
+                  {feeDetails.status.toUpperCase()}
                 </div>
               </div>
-
               <div style={styles.feeDetails}>
                 <div style={styles.feeRow}>
                   <span>Tuition Fee</span>
-                  <span>₹45,000</span>
+                  <span>₹25,000</span>
                 </div>
                 <div style={styles.feeRow}>
                   <span>Library Fee</span>
@@ -346,7 +346,7 @@ const StudentDash = () => {
                 </div>
                 <div style={styles.feeRow}>
                   <span>Lab Charges</span>
-                  <span>₹3,000</span>
+                  <span>₹1,000</span>
                 </div>
                 <div
                   style={{
@@ -357,17 +357,16 @@ const StudentDash = () => {
                   }}
                 >
                   <span>Total Amount</span>
-                  <span>₹{fees.amount.toLocaleString()}</span>
+                  <span>₹{feeDetails.amount.toLocaleString()}</span>
                 </div>
               </div>
-
-              {fees.status === "Pending" ? (
+              {feeDetails.status === "Pending" ? (
                 <button
                   style={styles.payBtn}
                   onClick={handleMockPayment}
                   disabled={loadingPay}
                 >
-                  {loadingPay ? "Processing Secure Payment..." : "Pay Now 💳"}
+                  {loadingPay ? "Processing..." : "Pay Now 💳"}
                 </button>
               ) : (
                 <button style={styles.paidBtn} disabled>
@@ -382,7 +381,7 @@ const StudentDash = () => {
   );
 };
 
-// 💎 COMPONENTS & STYLES
+// COMPONENTS
 const NavBtn = ({ label, active, onClick }) => (
   <button
     style={active ? styles.menuBtnActive : styles.menuBtn}
@@ -394,19 +393,17 @@ const NavBtn = ({ label, active, onClick }) => (
 
 const StatCard = ({ title, value, color }) => (
   <div style={{ ...styles.statCard, borderTop: `4px solid ${color}` }}>
-    <h3 style={{ fontSize: "32px", color: "#2c3e50", margin: 0 }}>{value}</h3>
-    <p style={{ color: "#7f8c8d", margin: 0 }}>{title}</p>
+    <h3>{value}</h3> <p>{title}</p>
   </div>
 );
 
+// STYLES
 const styles = {
   container: {
-    backgroundColor: "#f4f6f9",
+    background: "#f4f6f9",
     minHeight: "100vh",
-    fontFamily: "'Inter', sans-serif",
+    fontFamily: "sans-serif",
   },
-
-  // Navbar
   navbar: {
     display: "flex",
     justifyContent: "space-between",
@@ -415,25 +412,10 @@ const styles = {
     background: "#2c3e50",
     color: "#fff",
     alignItems: "center",
-    boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
-    position: "sticky",
-    top: 0,
-    zIndex: 100,
   },
-  brand: {
-    display: "flex",
-    alignItems: "center",
-    gap: "10px",
-    fontSize: "20px",
-  },
-  logoIcon: { fontSize: "24px" },
+  brand: { fontSize: "20px", fontWeight: "bold" },
   navRight: { display: "flex", gap: "20px", alignItems: "center" },
-  profile: {
-    display: "flex",
-    alignItems: "center",
-    gap: "10px",
-    fontWeight: "600",
-  },
+  profile: { display: "flex", alignItems: "center", gap: "10px" },
   avatarNav: {
     width: "35px",
     height: "35px",
@@ -453,8 +435,6 @@ const styles = {
     borderRadius: "6px",
     cursor: "pointer",
   },
-
-  // Layout
   mainGrid: {
     display: "grid",
     gridTemplateColumns: "250px 1fr",
@@ -468,44 +448,35 @@ const styles = {
   menuLabel: {
     fontSize: "12px",
     color: "#95a5a6",
-    marginTop: "10px",
     marginBottom: "10px",
     fontWeight: "bold",
-    letterSpacing: "1px",
   },
   menuBtn: {
     display: "block",
     width: "100%",
-    padding: "12px 15px",
+    padding: "12px",
     background: "transparent",
     color: "#7f8c8d",
     border: "none",
     textAlign: "left",
     cursor: "pointer",
     borderRadius: "8px",
-    fontSize: "15px",
     marginBottom: "5px",
-    transition: "0.2s",
   },
   menuBtnActive: {
     display: "block",
     width: "100%",
-    padding: "12px 15px",
+    padding: "12px",
     background: "#f0f3f6",
     color: "#2c3e50",
     border: "none",
     textAlign: "left",
     cursor: "pointer",
     borderRadius: "8px",
-    fontSize: "15px",
-    marginBottom: "5px",
-    fontWeight: "600",
+    fontWeight: "bold",
     borderRight: "4px solid #f1c40f",
   },
-
   content: { padding: "30px" },
-
-  // Dashboard
   welcomeCard: {
     background: "linear-gradient(135deg, #3498db, #2c3e50)",
     color: "#fff",
@@ -513,25 +484,17 @@ const styles = {
     borderRadius: "12px",
     display: "flex",
     justifyContent: "space-between",
-    alignItems: "center",
     marginBottom: "30px",
-    boxShadow: "0 4px 15px rgba(52, 152, 219, 0.3)",
   },
-  welcomeText: { flex: 1 },
   idCard: {
     background: "rgba(255,255,255,0.1)",
     padding: "15px",
     borderRadius: "8px",
-    backdropFilter: "blur(5px)",
-    border: "1px solid rgba(255,255,255,0.2)",
-    minWidth: "150px",
   },
-
   overviewGrid: {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
     gap: "20px",
-    marginBottom: "30px",
   },
   statCard: {
     background: "#fff",
@@ -539,26 +502,21 @@ const styles = {
     borderRadius: "12px",
     boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
   },
-
   card: {
     background: "#fff",
     padding: "25px",
     borderRadius: "12px",
-    boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
     marginBottom: "20px",
   },
   cardHeader: {
     display: "flex",
     justifyContent: "space-between",
-    alignItems: "center",
     marginBottom: "20px",
   },
-
   activityList: { display: "flex", flexDirection: "column", gap: "15px" },
   activityItem: {
     display: "flex",
     justifyContent: "space-between",
-    alignItems: "center",
     padding: "15px",
     background: "#f8f9fa",
     borderRadius: "8px",
@@ -571,29 +529,23 @@ const styles = {
     textAlign: "center",
     fontWeight: "bold",
   },
-
-  // Tables & Status
   table: { width: "100%", borderCollapse: "collapse", marginTop: "10px" },
-  trHead: {
-    background: "#f8f9fa",
-    borderBottom: "2px solid #e9ecef",
-    textAlign: "left",
-  },
+  trHead: { background: "#f8f9fa", textAlign: "left" },
   tr: { borderBottom: "1px solid #f1f2f6" },
-  td: { padding: "12px", verticalAlign: "middle" },
+  td: { padding: "12px" },
   statusGreen: {
     color: "#27ae60",
-    fontWeight: "bold",
     background: "#eafaf1",
     padding: "4px 8px",
     borderRadius: "4px",
+    fontWeight: "bold",
   },
   statusRed: {
     color: "#e74c3c",
-    fontWeight: "bold",
     background: "#fdedec",
     padding: "4px 8px",
     borderRadius: "4px",
+    fontWeight: "bold",
   },
   gradeBadge: {
     background: "#34495e",
@@ -601,52 +553,32 @@ const styles = {
     padding: "4px 10px",
     borderRadius: "12px",
     fontSize: "12px",
-    fontWeight: "bold",
   },
-
-  progressBarBg: {
-    flex: 1,
-    height: "8px",
-    background: "#eee",
-    borderRadius: "4px",
-    margin: "0 20px",
-  },
-  progressBarFill: { height: "100%", borderRadius: "4px" },
-
-  // Fee Card
   feeCard: {
     background: "#fff",
     padding: "40px",
     borderRadius: "12px",
     maxWidth: "600px",
     margin: "0 auto",
-    boxShadow: "0 4px 20px rgba(0,0,0,0.05)",
   },
   feeHeader: {
     display: "flex",
     justifyContent: "space-between",
-    alignItems: "center",
     marginBottom: "30px",
-    borderBottom: "1px solid #eee",
-    paddingBottom: "20px",
   },
   paidStamp: {
     border: "2px solid #27ae60",
     color: "#27ae60",
-    padding: "10px 20px",
+    padding: "10px",
     borderRadius: "8px",
-    fontWeight: "900",
-    letterSpacing: "2px",
-    transform: "rotate(-5deg)",
+    fontWeight: "bold",
   },
   dueStamp: {
     border: "2px solid #e74c3c",
     color: "#e74c3c",
-    padding: "10px 20px",
+    padding: "10px",
     borderRadius: "8px",
-    fontWeight: "900",
-    letterSpacing: "2px",
-    transform: "rotate(-5deg)",
+    fontWeight: "bold",
   },
   feeDetails: {
     display: "flex",
@@ -658,7 +590,6 @@ const styles = {
     display: "flex",
     justifyContent: "space-between",
     fontSize: "16px",
-    color: "#555",
   },
   payBtn: {
     width: "100%",
@@ -667,10 +598,8 @@ const styles = {
     color: "#fff",
     border: "none",
     borderRadius: "8px",
-    fontSize: "16px",
     fontWeight: "bold",
     cursor: "pointer",
-    transition: "0.2s",
   },
   paidBtn: {
     width: "100%",
@@ -679,7 +608,6 @@ const styles = {
     color: "#fff",
     border: "none",
     borderRadius: "8px",
-    fontSize: "16px",
     fontWeight: "bold",
     cursor: "default",
   },
