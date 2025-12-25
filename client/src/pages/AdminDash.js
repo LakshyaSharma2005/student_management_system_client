@@ -45,6 +45,7 @@ const COURSE_OPTIONS = [
 const AdminDash = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("overview");
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true); // 🟢 NEW: Sidebar Toggle State
 
   const SERVER_URL =
     "https://student-management-system-server-vygt.onrender.com";
@@ -121,7 +122,7 @@ const AdminDash = () => {
     }
   }, [navigate, fetchData]);
 
-  // 📝 HANDLERS (Logic Unchanged)
+  // 📝 HANDLERS
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -200,13 +201,19 @@ const AdminDash = () => {
 
   return (
     <div style={styles.container}>
-      {/* 🌑 PROFESSIONAL SIDEBAR */}
-      <div style={styles.sidebar}>
+      {/* 🌑 SIDEBAR (Collapsible) */}
+      <div
+        style={{
+          ...styles.sidebar,
+          width: isSidebarOpen ? "280px" : "0", // 🟢 Toggle Width
+          padding: isSidebarOpen ? "24px" : "0", // 🟢 Hide Padding when closed
+        }}
+      >
         <div style={styles.logoContainer}>
-          <div style={styles.logoIcon}>🎓</div>
+          <div style={styles.logoIcon}>⚡</div>
+          {/* 🟢 RENAMED TO ADMIN PANEL */}
           <h2 style={styles.logoText}>
-            {settings.instituteName.split(" ")[0]}
-            <span style={{ color: "#3b82f6" }}>Admin</span>
+            Admin <span style={{ color: "#3b82f6" }}>Panel</span>
           </h2>
         </div>
 
@@ -269,13 +276,28 @@ const AdminDash = () => {
         </button>
       </div>
 
-      {/* ⚪ MAIN CONTENT */}
-      <div style={styles.content}>
+      {/* ⚪ MAIN CONTENT (Expands when Sidebar closes) */}
+      <div
+        style={{
+          ...styles.content,
+          marginLeft: isSidebarOpen ? "280px" : "0", // 🟢 Smooth Push Effect
+        }}
+      >
         {/* TOP HEADER */}
         <div style={styles.header}>
-          <h2 style={styles.pageTitle}>
-            {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
-          </h2>
+          <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
+            {/* 🟢 HAMBURGER ICON */}
+            <button
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              style={styles.hamburgerBtn}
+            >
+              ☰
+            </button>
+            <h2 style={styles.pageTitle}>
+              {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
+            </h2>
+          </div>
+
           <div style={styles.headerActions}>
             <div style={styles.searchBar}>
               <span>🔍</span>
@@ -333,7 +355,6 @@ const AdminDash = () => {
               <div style={styles.card}>
                 <h3 style={styles.cardTitle}>📈 Enrollment Trends</h3>
                 <div style={styles.chartContainer}>
-                  {/* CSS Bar Chart */}
                   {[45, 72, 58, 90, 65, 80, 55].map((h, i) => (
                     <div key={i} style={styles.barWrapper}>
                       <div style={{ ...styles.bar, height: `${h}%` }}></div>
@@ -386,9 +407,10 @@ const AdminDash = () => {
               display: "flex",
               gap: "20px",
               alignItems: "start",
+              flexDirection: "column",
             }}
           >
-            {/* LEFT: FORM */}
+            {/* FORM CARD */}
             <div style={styles.formCard}>
               <h3 style={styles.cardTitle}>
                 {isEditing
@@ -397,105 +419,86 @@ const AdminDash = () => {
                       activeTab === "students" ? "Student" : "Faculty"
                     }`}
               </h3>
-              <form onSubmit={handleSubmit} style={styles.form}>
-                <div style={styles.inputGroup}>
-                  <label style={styles.label}>Full Name</label>
-                  <input
-                    style={styles.input}
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
-                    }
-                    required
-                  />
-                </div>
-                <div style={styles.inputGroup}>
-                  <label style={styles.label}>Email Address</label>
-                  <input
-                    style={styles.input}
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) =>
-                      setFormData({ ...formData, email: e.target.value })
-                    }
-                    required
-                  />
-                </div>
+              <form onSubmit={handleSubmit} style={styles.formHorizontal}>
+                <input
+                  style={styles.input}
+                  type="text"
+                  placeholder="Full Name"
+                  value={formData.name}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
+                  required
+                />
+                <input
+                  style={styles.input}
+                  type="email"
+                  placeholder="Email"
+                  value={formData.email}
+                  onChange={(e) =>
+                    setFormData({ ...formData, email: e.target.value })
+                  }
+                  required
+                />
                 {!isEditing && (
-                  <div style={styles.inputGroup}>
-                    <label style={styles.label}>Password</label>
-                    <input
-                      style={styles.input}
-                      type="password"
-                      placeholder="Default: 123456"
-                      value={formData.password}
-                      onChange={(e) =>
-                        setFormData({ ...formData, password: e.target.value })
-                      }
-                    />
-                  </div>
+                  <input
+                    style={styles.input}
+                    type="password"
+                    placeholder="Password (Default: 123456)"
+                    value={formData.password}
+                    onChange={(e) =>
+                      setFormData({ ...formData, password: e.target.value })
+                    }
+                  />
                 )}
 
                 {activeTab === "students" ? (
                   <>
-                    <div style={styles.inputGroup}>
-                      <label style={styles.label}>Course / Branch</label>
-                      <select
-                        style={styles.select}
-                        value={formData.course}
-                        onChange={(e) =>
-                          setFormData({ ...formData, course: e.target.value })
-                        }
-                        required
-                      >
-                        <option value="">Select Specialization...</option>
-                        {COURSE_OPTIONS.map((c, i) => (
-                          <option key={i} value={c}>
-                            {c}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div style={styles.inputGroup}>
-                      <label style={styles.label}>Fee Status</label>
-                      <select
-                        style={styles.select}
-                        value={formData.fees}
-                        onChange={(e) =>
-                          setFormData({ ...formData, fees: e.target.value })
-                        }
-                      >
-                        <option value="Pending">Pending</option>
-                        <option value="Paid">Paid</option>
-                      </select>
-                    </div>
+                    <select
+                      style={styles.select}
+                      value={formData.course}
+                      onChange={(e) =>
+                        setFormData({ ...formData, course: e.target.value })
+                      }
+                      required
+                    >
+                      <option value="">Select Specialization...</option>
+                      {COURSE_OPTIONS.map((c, i) => (
+                        <option key={i} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      style={styles.select}
+                      value={formData.fees}
+                      onChange={(e) =>
+                        setFormData({ ...formData, fees: e.target.value })
+                      }
+                    >
+                      <option value="Pending">Fees: Pending</option>
+                      <option value="Paid">Fees: Paid</option>
+                    </select>
                   </>
                 ) : (
-                  <div style={styles.inputGroup}>
-                    <label style={styles.label}>Specialization Subject</label>
-                    <input
-                      style={styles.input}
-                      type="text"
-                      value={formData.subject}
-                      onChange={(e) =>
-                        setFormData({ ...formData, subject: e.target.value })
-                      }
-                    />
-                  </div>
+                  <input
+                    style={styles.input}
+                    type="text"
+                    placeholder="Subject"
+                    value={formData.subject}
+                    onChange={(e) =>
+                      setFormData({ ...formData, subject: e.target.value })
+                    }
+                  />
                 )}
 
-                <div style={styles.formActions}>
+                <div style={{ display: "flex", gap: "10px" }}>
                   <button
                     type="submit"
                     disabled={loading}
                     style={styles.primaryBtn}
                   >
-                    {loading
-                      ? "Processing..."
-                      : isEditing
-                      ? "Update"
-                      : "Create Record"}
+                    {loading ? "Processing..." : isEditing ? "Update" : "Save"}
                   </button>
                   {isEditing && (
                     <button
@@ -520,7 +523,7 @@ const AdminDash = () => {
               </form>
             </div>
 
-            {/* RIGHT: TABLE */}
+            {/* TABLE CARD */}
             <div style={styles.tableCard}>
               <div style={styles.tableHeader}>
                 <h3 style={styles.cardTitle}>Directory</h3>
@@ -853,19 +856,31 @@ const styles = {
     backgroundColor: "#f1f5f9",
     fontFamily: "'Inter', sans-serif",
   },
+
+  // 🟢 SIDEBAR (Now Fixed & Animated)
   sidebar: {
-    width: "280px",
     backgroundColor: "#1e293b",
     color: "#f8fafc",
-    padding: "24px",
     display: "flex",
     flexDirection: "column",
     borderRight: "1px solid #334155",
     position: "fixed",
+    top: 0,
+    left: 0,
     height: "100vh",
-    overflowY: "auto",
+    zIndex: 1000,
+    overflowX: "hidden", // Hide content when collapsed
+    whiteSpace: "nowrap", // Prevent text wrap
+    transition: "width 0.3s ease", // 🟢 Smooth Transition
   },
-  content: { flex: 1, padding: "32px", marginLeft: "280px" },
+
+  // 🟢 MAIN CONTENT (Pushed by Sidebar)
+  content: {
+    flex: 1,
+    padding: "32px",
+    transition: "margin-left 0.3s ease", // 🟢 Smooth Push Effect
+    width: "100%",
+  },
 
   // Sidebar Elements
   logoContainer: {
@@ -946,6 +961,14 @@ const styles = {
     color: "#0f172a",
     margin: 0,
   },
+  hamburgerBtn: {
+    background: "none",
+    border: "none",
+    fontSize: "24px",
+    cursor: "pointer",
+    color: "#334155",
+    marginRight: "10px",
+  }, // 🟢 NEW
   headerActions: { display: "flex", alignItems: "center", gap: "20px" },
   searchBar: {
     display: "flex",
@@ -1121,7 +1144,11 @@ const styles = {
     height: "fit-content",
     flex: 1,
   },
-  form: { display: "flex", flexDirection: "column", gap: "16px" },
+  formHorizontal: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: "16px",
+  }, // 🟢 Side-by-side inputs
   inputGroup: { display: "flex", flexDirection: "column", gap: "6px" },
   label: { fontSize: "13px", fontWeight: "600", color: "#475569" },
   input: {
@@ -1131,6 +1158,8 @@ const styles = {
     fontSize: "14px",
     outline: "none",
     transition: "border 0.2s",
+    width: "100%",
+    boxSizing: "border-box",
   },
   select: {
     padding: "10px 14px",
@@ -1139,6 +1168,8 @@ const styles = {
     fontSize: "14px",
     outline: "none",
     background: "white",
+    width: "100%",
+    boxSizing: "border-box",
   },
   textarea: {
     padding: "10px 14px",
@@ -1147,6 +1178,7 @@ const styles = {
     fontSize: "14px",
     outline: "none",
     resize: "vertical",
+    width: "100%",
   },
   formActions: { display: "flex", gap: "12px", marginTop: "10px" },
   primaryBtn: {
