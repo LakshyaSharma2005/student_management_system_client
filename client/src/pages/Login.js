@@ -15,7 +15,7 @@ const Login = () => {
   const [error, setError] = useState("");
   const [showForgotModal, setShowForgotModal] = useState(false);
 
-  // 🟢 FIX 1: Get 'user' from context so we can watch for updates
+  // Get 'user' from context so we can watch for updates
   const { login, user } = useContext(AuthContext);
   const navigate = useNavigate();
   const SERVER_URL =
@@ -28,7 +28,7 @@ const Login = () => {
     for (let i = 0; i < 4; i++) {
       code += chars[Math.floor(Math.random() * chars.length)];
     }
-    setCaptchaCode(code); // Store raw code: "1014"
+    setCaptchaCode(code);
   };
 
   // Generate on load
@@ -36,15 +36,21 @@ const Login = () => {
     generateCaptcha();
   }, []);
 
-  // 🟢 FIX 2: useEffect to handle Navigation AFTER state updates
+  // 🟢 FIX APPLIED HERE: Handle Case Sensitivity
   useEffect(() => {
-    if (user) {
-      // Logic to determine dashboard based on role
-      // Optional: .toLowerCase() added for safety against DB mismatches
-      const role = user.role;
-      if (role === "Admin") navigate("/admin");
-      else if (role === "Teacher") navigate("/teacher");
-      else navigate("/student");
+    // Only run if user exists and has a role property
+    if (user && user.role) {
+      // Force role to lowercase to match "admin", "Admin", or "ADMIN"
+      const role = user.role.toLowerCase();
+
+      if (role === "admin") {
+        navigate("/admin");
+      } else if (role === "teacher") {
+        navigate("/teacher");
+      } else {
+        // Default to student
+        navigate("/student");
+      }
     }
   }, [user, navigate]);
 
@@ -55,9 +61,9 @@ const Login = () => {
     // 🛑 STRICT CAPTCHA CHECK
     if (!captchaInput || captchaInput !== captchaCode) {
       setError("❌ Invalid Captcha. Please try again.");
-      generateCaptcha(); // Refresh code to prevent brute force
-      setCaptchaInput(""); // Clear input
-      return; // ⛔ STOP HERE. Do not proceed to login.
+      generateCaptcha();
+      setCaptchaInput("");
+      return;
     }
 
     setLoading(true);
@@ -67,12 +73,12 @@ const Login = () => {
         password,
       });
       if (res.data.token && res.data.user) {
-        // 🟢 FIX 3: Just update state and storage here.
-        // The useEffect above will handle the navigation automatically.
-        login(res.data.user);
+        // Update state and storage. The useEffect above will handle navigation.
         localStorage.setItem("token", res.data.token);
+        login(res.data.user);
       }
     } catch (err) {
+      console.error(err); // Log error to see details in console
       setError("Invalid Credentials");
       generateCaptcha();
     }
@@ -84,7 +90,6 @@ const Login = () => {
       {/* 🟦 BLUE WAVE BACKGROUND */}
       <div style={styles.blueSection}>
         <div style={styles.logoContainer}>
-          {/* Placeholder for University Logo Image */}
           <div style={styles.logoCircle}>
             <span style={{ fontSize: "24px" }}>🎓</span>
           </div>
@@ -141,7 +146,7 @@ const Login = () => {
               <span style={styles.icon}>🔒</span>
             </div>
 
-            {/* 🟢 CAPTCHA ROW (Fixed Alignment) */}
+            {/* 🟢 CAPTCHA ROW */}
             <div style={styles.captchaRow}>
               <div style={styles.captchaDisplay}>
                 <span
@@ -186,18 +191,18 @@ const Login = () => {
             </button>
           </form>
 
-          {/* REPLACED <a> WITH <button> TO FIX ESLINT ERROR */}
+          {/* Footer Links */}
           <div style={styles.footerLinks}>
             <button
               onClick={() => setShowForgotModal(true)}
               style={{
-                ...styles.forgotLink, // Keep your existing link styles
+                ...styles.forgotLink,
                 background: "none",
                 border: "none",
                 padding: "0",
                 font: "inherit",
                 cursor: "pointer",
-                textDecoration: "underline", // Optional: ensures it looks like a link
+                textDecoration: "underline",
               }}
             >
               Forgot Password / UserName
@@ -248,7 +253,7 @@ const Login = () => {
   );
 };
 
-/* 🎨 PIXEL-PERFECT STYLES */
+/* 🎨 STYLES */
 const styles = {
   page: {
     display: "flex",
@@ -259,11 +264,10 @@ const styles = {
     position: "relative",
     overflow: "hidden",
   },
-  // 🔷 LEFT BLUE SECTION
   blueSection: {
-    width: "60%", // Covers left side
+    width: "60%",
     height: "100%",
-    backgroundColor: "#305f82", // The specific muted blue from screenshot
+    backgroundColor: "#305f82",
     display: "flex",
     flexDirection: "column",
     justifyContent: "center",
@@ -272,7 +276,6 @@ const styles = {
     position: "relative",
     zIndex: 1,
   },
-  // ⚪ WHITE CURVE OVERLAY (Creates the wave effect)
   whiteCurve: {
     position: "absolute",
     top: 0,
@@ -280,12 +283,10 @@ const styles = {
     width: "55%",
     height: "100%",
     backgroundColor: "#fff",
-    clipPath: "ellipse(70% 100% at 80% 50%)", // Creates the curve shape
+    clipPath: "ellipse(70% 100% at 80% 50%)",
     zIndex: 2,
-    pointerEvents: "none", // Let clicks pass through if needed
+    pointerEvents: "none",
   },
-
-  // LOGO & TEXT
   logoContainer: {
     display: "flex",
     alignItems: "center",
@@ -335,14 +336,12 @@ const styles = {
     lineHeight: "1.5",
     opacity: 0.8,
   },
-
-  // ⬜ CARD CONTAINER (Floats on right)
   cardContainer: {
     position: "absolute",
     right: "10%",
     top: "50%",
     transform: "translateY(-50%)",
-    zIndex: 10, // Above the wave
+    zIndex: 10,
     width: "380px",
   },
   card: {
@@ -367,7 +366,7 @@ const styles = {
   },
   input: {
     width: "100%",
-    padding: "10px 35px 10px 12px", // Space for icon on right
+    padding: "10px 35px 10px 12px",
     border: "1px solid #ccc",
     borderRadius: "4px",
     fontSize: "14px",
@@ -382,8 +381,6 @@ const styles = {
     color: "#999",
     fontSize: "16px",
   },
-
-  // 🟢 CAPTCHA STYLES
   captchaRow: {
     display: "flex",
     gap: "10px",
@@ -414,7 +411,6 @@ const styles = {
     borderRadius: "4px",
     fontSize: "14px",
   },
-
   checkboxRow: {
     display: "flex",
     alignItems: "center",
@@ -422,7 +418,7 @@ const styles = {
     marginTop: "5px",
   },
   loginBtn: {
-    backgroundColor: "#1a237e", // Dark Navy Blue
+    backgroundColor: "#1a237e",
     color: "#fff",
     padding: "10px",
     border: "none",
