@@ -20,14 +20,14 @@ const Login = () => {
   const SERVER_URL =
     "https://student-management-system-server-vygt.onrender.com";
 
-  // 🟢 FUNCTION TO GENERATE RANDOM CAPTCHA
+  // 🟢 GENERATE RANDOM CAPTCHA
   const generateCaptcha = () => {
-    const chars = "0123456789"; // You can add letters "ABCDEFGHIJKLMNOPQRSTUVWXYZ" if you want
+    const chars = "0123456789";
     let code = "";
     for (let i = 0; i < 4; i++) {
       code += chars[Math.floor(Math.random() * chars.length)];
     }
-    setCaptchaCode(code.split("").join(" ")); // Add spaces for style "1 0 1 4"
+    setCaptchaCode(code); // Store raw code: "1014"
   };
 
   // Generate on load
@@ -39,14 +39,12 @@ const Login = () => {
     e.preventDefault();
     setError("");
 
-    // 🟢 1. CHECK CAPTCHA FIRST
-    // Remove spaces from code to compare (e.g., "1 0 1 4" -> "1014")
-    const cleanCode = captchaCode.replace(/\s/g, "");
-    if (captchaInput !== cleanCode) {
-      setError("❌ Invalid Captcha Code. Please try again.");
-      generateCaptcha(); // Refresh code on error
+    // 🛑 STRICT CAPTCHA CHECK
+    if (!captchaInput || captchaInput !== captchaCode) {
+      setError("❌ Invalid Captcha. Please try again.");
+      generateCaptcha(); // Refresh code to prevent brute force
       setCaptchaInput(""); // Clear input
-      return;
+      return; // ⛔ STOP HERE. Do not proceed to login.
     }
 
     setLoading(true);
@@ -65,147 +63,170 @@ const Login = () => {
       }
     } catch (err) {
       setError("Invalid Credentials");
-      generateCaptcha(); // Refresh captcha on failed login too
+      generateCaptcha();
     }
     setLoading(false);
   };
 
   return (
     <div style={styles.page}>
-      {/* BACKGROUND WAVE */}
-      <div style={styles.bgShape}></div>
-
-      <div style={styles.container}>
-        {/* LEFT SIDE */}
-        <div style={styles.leftContent}>
-          <div style={styles.logoRow}>
-            <div style={styles.logoCircle}>CP</div>
-            <div>
-              <h2 style={styles.uniTitle}>CAREER POINT</h2>
-              <h2 style={styles.uniSubtitle}>UNIVERSITY</h2>
-            </div>
+      {/* 🟦 BLUE WAVE BACKGROUND */}
+      <div style={styles.blueSection}>
+        <div style={styles.logoContainer}>
+          {/* Placeholder for University Logo Image */}
+          <div style={styles.logoCircle}>
+            <span style={{ fontSize: "24px" }}>🎓</span>
           </div>
-
-          <div style={styles.welcomeText}>
-            <p style={{ fontSize: "14px", marginBottom: "5px" }}>Welcome to</p>
-            <h1 style={styles.bigTitle}>Career Point University Kota</h1>
-            <p style={styles.address}>
-              National Highway 52, Opp Alaniya Mata Ji Mandir, Alaniya, Kota,
-              Rajasthan 325003
-            </p>
+          <div style={{ textAlign: "left" }}>
+            <h1 style={styles.uniTitle}>CAREER POINT</h1>
+            <h2 style={styles.uniSubtitle}>UNIVERSITY</h2>
           </div>
         </div>
 
-        {/* RIGHT SIDE: Login Card */}
-        <div style={styles.cardWrapper}>
-          <div style={styles.card}>
-            <h2 style={styles.cardTitle}>Sign In</h2>
+        <div style={styles.welcomeContainer}>
+          <p style={styles.welcomeSmall}>Welcome to</p>
+          <h1 style={styles.welcomeBig}>Career Point University Kota</h1>
+          <p style={styles.address}>
+            National Highway 52, Opp Alaniya Mata Ji Mandir, Alaniya, Kota,
+            Rajasthan 325003
+          </p>
+        </div>
+      </div>
 
-            {error && <div style={styles.errorMsg}>{error}</div>}
+      {/* ⬜ WHITE CURVE OVERLAY */}
+      <div style={styles.whiteCurve}></div>
 
-            <form onSubmit={handleSubmit} style={styles.form}>
-              <div style={styles.inputGroup}>
-                <input
-                  type="email"
-                  placeholder="User Name"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  style={styles.input}
-                  required
-                />
-                <span style={styles.icon}>👤</span>
-              </div>
+      {/* ⬜ LOGIN CARD */}
+      <div style={styles.cardContainer}>
+        <div style={styles.card}>
+          <h2 style={styles.signInTitle}>Sign In</h2>
 
-              <div style={styles.inputGroup}>
-                <input
-                  type="password"
-                  placeholder="Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  style={styles.input}
-                  required
-                />
-                <span style={styles.icon}>🔒</span>
-              </div>
+          {error && <div style={styles.errorMsg}>{error}</div>}
 
-              {/* 🟢 WORKING CAPTCHA SECTION */}
-              <div style={styles.captchaRow}>
-                <div style={styles.captchaCode}>
-                  {/* Click icon to refresh */}
-                  <span
-                    onClick={generateCaptcha}
-                    style={{
-                      cursor: "pointer",
-                      fontSize: "18px",
-                      marginRight: "8px",
-                    }}
-                    title="Refresh Captcha"
-                  >
-                    ↻
-                  </span>
-                  {captchaCode}
-                </div>
-                <input
-                  type="text"
-                  placeholder="Enter Captcha"
-                  style={styles.input}
-                  value={captchaInput}
-                  onChange={(e) => setCaptchaInput(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div style={styles.checkRow}>
-                <input type="checkbox" id="rem" />
-                <label htmlFor="rem">Remember Me</label>
-              </div>
-
-              <button type="submit" disabled={loading} style={styles.btn}>
-                {loading ? "Signing In..." : "Sign In"}
-              </button>
-            </form>
-
-            <div style={styles.links}>
-              <span
-                onClick={() => setShowForgotModal(true)}
-                style={styles.link}
-              >
-                Forgot Password / UserName
-              </span>
+          <form onSubmit={handleSubmit} style={styles.form}>
+            {/* User Name */}
+            <div style={styles.inputGroup}>
+              <input
+                type="text"
+                placeholder="User Name"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                style={styles.input}
+                required
+              />
+              <span style={styles.icon}>👤</span>
             </div>
 
-            <div style={styles.appStore}>
-              <div style={styles.playBtn}>
-                <span>GET IT ON</span>
-                <br />
-                <b>Google Play</b>
+            {/* Password */}
+            <div style={styles.inputGroup}>
+              <input
+                type="password"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                style={styles.input}
+                required
+              />
+              <span style={styles.icon}>🔒</span>
+            </div>
+
+            {/* 🟢 CAPTCHA ROW (Fixed Alignment) */}
+            <div style={styles.captchaRow}>
+              <div style={styles.captchaDisplay}>
+                <span
+                  onClick={generateCaptcha}
+                  style={styles.refreshIcon}
+                  title="Refresh"
+                >
+                  ↻
+                </span>
+                <span style={styles.codeText}>
+                  {captchaCode.split("").join(" ")}
+                </span>
               </div>
-              <div style={styles.qrCode}>QR</div>
+              <input
+                type="text"
+                placeholder="Captcha"
+                style={styles.captchaInput}
+                value={captchaInput}
+                onChange={(e) => setCaptchaInput(e.target.value)}
+                required
+              />
+            </div>
+
+            {/* Remember Me */}
+            <div style={styles.checkboxRow}>
+              <input
+                type="checkbox"
+                id="remember"
+                style={{ cursor: "pointer" }}
+              />
+              <label
+                htmlFor="remember"
+                style={{ cursor: "pointer", fontSize: "14px", color: "#555" }}
+              >
+                Remember Me
+              </label>
+            </div>
+
+            {/* Submit Button */}
+            <button type="submit" disabled={loading} style={styles.loginBtn}>
+              {loading ? "Signing In..." : "Sign In"}
+            </button>
+          </form>
+
+          {/* REPLACED <a> WITH <button> TO FIX ESLINT ERROR */}
+            <div style={styles.footerLinks}>
+              <button
+                onClick={() => setShowForgotModal(true)}
+                style={{
+                  ...styles.forgotLink, // Keep your existing link styles
+                  background: "none",
+                  border: "none",
+                  padding: "0",
+                  font: "inherit",
+                  cursor: "pointer",
+                  textDecoration: "underline" // Optional: ensures it looks like a link
+                }}
+              >
+                Forgot Password / UserName
+              </button>
+            </div>
+
+          <div style={styles.cardFooter}>
+            <div style={styles.playBadge}>
+              <span style={{ fontSize: "8px" }}>GET IT ON</span>
+              <br />
+              <span style={{ fontSize: "12px", fontWeight: "bold" }}>
+                Google Play
+              </span>
+            </div>
+            {/* QR Code Placeholder */}
+            <div style={styles.qrCode}>
+              <div
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  background: "#000",
+                  opacity: 0.1,
+                }}
+              ></div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* 🔐 FORGOT PASSWORD MODAL */}
+      {/* 🔐 MODAL */}
       {showForgotModal && (
         <div style={styles.modalOverlay}>
-          <div style={styles.modalCard}>
-            <h3 style={styles.modalTitle}>🔐 Reset Password</h3>
-            <p style={styles.modalText}>
-              Contact the administration to reset your credentials.
+          <div style={styles.modalContent}>
+            <h3>Recover Account</h3>
+            <p>
+              Please contact IT Admin: <b>support@cpur.edu.in</b>
             </p>
-            <div style={styles.adminContact}>
-              <p>
-                <strong>Admin Contact:</strong>
-              </p>
-              <p style={{ color: "#2c5282", fontWeight: "bold" }}>
-                support@cpur.edu.in
-              </p>
-              <p style={{ marginTop: "5px" }}>+91 7297885540</p>
-            </div>
             <button
               onClick={() => setShowForgotModal(false)}
-              style={styles.closeBtn}
+              style={styles.modalBtn}
             >
               Close
             </button>
@@ -216,50 +237,45 @@ const Login = () => {
   );
 };
 
+/* 🎨 PIXEL-PERFECT STYLES */
 const styles = {
   page: {
+    display: "flex",
     height: "100vh",
-    width: "100%",
-    background: "#f4f6f9",
+    width: "100vw",
+    backgroundColor: "#fff",
+    fontFamily: '"Segoe UI", sans-serif',
     position: "relative",
     overflow: "hidden",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontFamily: "'Segoe UI', sans-serif",
   },
-
-  bgShape: {
+  // 🔷 LEFT BLUE SECTION
+  blueSection: {
+    width: "60%", // Covers left side
+    height: "100%",
+    backgroundColor: "#305f82", // The specific muted blue from screenshot
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "center",
+    paddingLeft: "8%",
+    color: "#fff",
+    position: "relative",
+    zIndex: 1,
+  },
+  // ⚪ WHITE CURVE OVERLAY (Creates the wave effect)
+  whiteCurve: {
     position: "absolute",
     top: 0,
-    left: 0,
-    width: "100%",
-    height: "55%",
-    background: "#2c5282",
-    borderBottomRightRadius: "50% 20%",
-    borderBottomLeftRadius: "50% 20%",
-    zIndex: 0,
+    right: 0,
+    width: "55%",
+    height: "100%",
+    backgroundColor: "#fff",
+    clipPath: "ellipse(70% 100% at 80% 50%)", // Creates the curve shape
+    zIndex: 2,
+    pointerEvents: "none", // Let clicks pass through if needed
   },
 
-  container: {
-    display: "flex",
-    width: "100%",
-    maxWidth: "1100px",
-    zIndex: 1,
-    padding: "20px",
-    justifyContent: "space-between",
-    alignItems: "center",
-    flexWrap: "wrap",
-  },
-
-  leftContent: {
-    flex: 1,
-    color: "white",
-    paddingRight: "50px",
-    minWidth: "300px",
-    marginBottom: "30px",
-  },
-  logoRow: {
+  // LOGO & TEXT
+  logoContainer: {
     display: "flex",
     alignItems: "center",
     gap: "15px",
@@ -268,168 +284,209 @@ const styles = {
   logoCircle: {
     width: "50px",
     height: "50px",
+    backgroundColor: "#fff",
     borderRadius: "50%",
-    background: "white",
-    color: "#2c5282",
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    fontWeight: "bold",
+    color: "#305f82",
   },
-  uniTitle: { margin: 0, fontSize: "24px", letterSpacing: "1px" },
+  uniTitle: {
+    margin: 0,
+    fontSize: "24px",
+    fontWeight: "700",
+    letterSpacing: "1px",
+    lineHeight: "1",
+  },
   uniSubtitle: {
     margin: 0,
     fontSize: "14px",
     fontWeight: "400",
-    letterSpacing: "3px",
+    letterSpacing: "4px",
+    marginTop: "2px",
   },
-  welcomeText: { marginTop: "20px" },
-  bigTitle: { fontSize: "32px", margin: "5px 0 15px 0", fontWeight: "700" },
+  welcomeContainer: {
+    marginTop: "20px",
+    maxWidth: "500px",
+  },
+  welcomeSmall: {
+    fontSize: "16px",
+    marginBottom: "5px",
+    opacity: 0.9,
+  },
+  welcomeBig: {
+    fontSize: "32px",
+    fontWeight: "700",
+    marginBottom: "15px",
+  },
   address: {
     fontSize: "14px",
-    opacity: 0.9,
     lineHeight: "1.5",
-    maxWidth: "400px",
+    opacity: 0.8,
   },
 
-  cardWrapper: {
-    flex: 1,
-    display: "flex",
-    justifyContent: "flex-end",
-    minWidth: "320px",
+  // ⬜ CARD CONTAINER (Floats on right)
+  cardContainer: {
+    position: "absolute",
+    right: "10%",
+    top: "50%",
+    transform: "translateY(-50%)",
+    zIndex: 10, // Above the wave
+    width: "380px",
   },
   card: {
-    background: "white",
-    padding: "40px",
-    borderRadius: "10px",
-    boxShadow: "0 10px 30px rgba(0,0,0,0.1)",
-    width: "100%",
-    maxWidth: "380px",
+    backgroundColor: "#fff",
+    padding: "30px",
+    borderRadius: "8px",
+    boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
   },
-  cardTitle: { margin: "0 0 20px 0", color: "#333", fontSize: "22px" },
-  errorMsg: {
-    background: "#ffebee",
-    color: "#c62828",
-    padding: "10px",
-    borderRadius: "4px",
-    fontSize: "13px",
-    marginBottom: "15px",
-    border: "1px solid #ffcdd2",
-    textAlign: "center",
+  signInTitle: {
+    fontSize: "22px",
+    color: "#333",
+    marginBottom: "25px",
+    fontWeight: "600",
   },
-
-  form: { display: "flex", flexDirection: "column", gap: "15px" },
-  inputGroup: { position: "relative" },
+  form: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "15px",
+  },
+  inputGroup: {
+    position: "relative",
+  },
   input: {
     width: "100%",
-    padding: "10px 10px 10px 10px",
-    border: "1px solid #ddd",
+    padding: "10px 35px 10px 12px", // Space for icon on right
+    border: "1px solid #ccc",
     borderRadius: "4px",
     fontSize: "14px",
     boxSizing: "border-box",
+    color: "#333",
   },
-  icon: { position: "absolute", right: "10px", top: "10px", color: "#ccc" },
+  icon: {
+    position: "absolute",
+    right: "10px",
+    top: "50%",
+    transform: "translateY(-50%)",
+    color: "#999",
+    fontSize: "16px",
+  },
 
-  captchaRow: { display: "flex", gap: "10px" },
-  captchaCode: {
-    flex: 1,
-    background: "#f0f2f5",
+  // 🟢 CAPTCHA STYLES
+  captchaRow: {
+    display: "flex",
+    gap: "10px",
+    alignItems: "center",
+  },
+  captchaDisplay: {
     display: "flex",
     alignItems: "center",
-    justifyContent: "center",
+    gap: "10px",
+    fontSize: "20px",
     fontWeight: "bold",
+    color: "#2c3e50",
     letterSpacing: "3px",
-    borderRadius: "4px",
-    fontSize: "16px",
     userSelect: "none",
   },
-
-  checkRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: "5px",
-    fontSize: "13px",
-    color: "#666",
+  refreshIcon: {
+    cursor: "pointer",
+    fontSize: "18px",
+    color: "#555",
+  },
+  codeText: {
+    marginLeft: "5px",
+  },
+  captchaInput: {
+    flex: 1,
+    padding: "10px",
+    border: "1px solid #ccc",
+    borderRadius: "4px",
+    fontSize: "14px",
   },
 
-  btn: {
-    padding: "12px",
-    background: "#1a202c",
-    color: "white",
+  checkboxRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    marginTop: "5px",
+  },
+  loginBtn: {
+    backgroundColor: "#1a237e", // Dark Navy Blue
+    color: "#fff",
+    padding: "10px",
     border: "none",
     borderRadius: "4px",
     fontSize: "16px",
-    cursor: "pointer",
-    fontWeight: "bold",
-  },
-
-  links: { marginTop: "15px", textAlign: "center" },
-  link: {
-    color: "#2c5282",
-    textDecoration: "none",
-    fontSize: "13px",
     fontWeight: "600",
     cursor: "pointer",
+    marginTop: "10px",
   },
-
-  appStore: {
-    marginTop: "20px",
+  footerLinks: {
+    textAlign: "center",
+    marginTop: "15px",
+  },
+  forgotLink: {
+    color: "#305f82",
+    fontSize: "13px",
+    fontWeight: "600",
+    textDecoration: "none",
+  },
+  cardFooter: {
+    marginTop: "25px",
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
   },
-  playBtn: {
-    background: "black",
-    color: "white",
+  playBadge: {
+    backgroundColor: "#000",
+    color: "#fff",
     padding: "5px 12px",
     borderRadius: "5px",
-    fontSize: "10px",
     lineHeight: "1.2",
     cursor: "pointer",
+    width: "fit-content",
   },
-  qrCode: { width: "40px", height: "40px", background: "#ddd" },
-
-  // Modal Styles
+  qrCode: {
+    width: "40px",
+    height: "40px",
+    border: "1px solid #ddd",
+  },
+  errorMsg: {
+    color: "#d32f2f",
+    background: "#ffebee",
+    padding: "8px",
+    borderRadius: "4px",
+    fontSize: "13px",
+    marginBottom: "15px",
+    textAlign: "center",
+  },
   modalOverlay: {
     position: "fixed",
     top: 0,
     left: 0,
-    right: 0,
-    bottom: 0,
+    width: "100%",
+    height: "100%",
     background: "rgba(0,0,0,0.5)",
+    zIndex: 100,
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    zIndex: 1000,
   },
-  modalCard: {
+  modalContent: {
     background: "#fff",
-    padding: "30px",
+    padding: "20px",
     borderRadius: "8px",
-    width: "90%",
-    maxWidth: "320px",
     textAlign: "center",
-    boxShadow: "0 5px 15px rgba(0,0,0,0.2)",
+    minWidth: "300px",
   },
-  modalTitle: { color: "#2c5282", marginTop: 0, fontSize: "20px" },
-  modalText: { color: "#555", fontSize: "14px", lineHeight: "1.5" },
-  adminContact: {
-    background: "#f9f9f9",
-    padding: "15px",
-    borderRadius: "8px",
-    margin: "20px 0",
-    color: "#333",
-    border: "1px solid #eee",
-  },
-  closeBtn: {
-    background: "#2c5282",
-    border: "none",
+  modalBtn: {
+    marginTop: "15px",
+    padding: "8px 20px",
+    background: "#305f82",
     color: "#fff",
-    padding: "8px 24px",
+    border: "none",
     borderRadius: "4px",
     cursor: "pointer",
-    fontSize: "14px",
-    fontWeight: "bold",
   },
 };
 
