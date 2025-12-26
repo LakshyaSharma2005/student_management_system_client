@@ -15,7 +15,8 @@ const Login = () => {
   const [error, setError] = useState("");
   const [showForgotModal, setShowForgotModal] = useState(false);
 
-  const { login } = useContext(AuthContext);
+  // 🟢 FIX 1: Get 'user' from context so we can watch for updates
+  const { login, user } = useContext(AuthContext);
   const navigate = useNavigate();
   const SERVER_URL =
     "https://student-management-system-server-vygt.onrender.com";
@@ -34,6 +35,18 @@ const Login = () => {
   useEffect(() => {
     generateCaptcha();
   }, []);
+
+  // 🟢 FIX 2: useEffect to handle Navigation AFTER state updates
+  useEffect(() => {
+    if (user) {
+      // Logic to determine dashboard based on role
+      // Optional: .toLowerCase() added for safety against DB mismatches
+      const role = user.role;
+      if (role === "Admin") navigate("/admin");
+      else if (role === "Teacher") navigate("/teacher");
+      else navigate("/student");
+    }
+  }, [user, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -54,12 +67,10 @@ const Login = () => {
         password,
       });
       if (res.data.token && res.data.user) {
+        // 🟢 FIX 3: Just update state and storage here.
+        // The useEffect above will handle the navigation automatically.
         login(res.data.user);
         localStorage.setItem("token", res.data.token);
-        const role = res.data.user.role;
-        if (role === "Admin") navigate("/admin");
-        else if (role === "Teacher") navigate("/teacher");
-        else navigate("/student");
       }
     } catch (err) {
       setError("Invalid Credentials");
@@ -176,22 +187,22 @@ const Login = () => {
           </form>
 
           {/* REPLACED <a> WITH <button> TO FIX ESLINT ERROR */}
-            <div style={styles.footerLinks}>
-              <button
-                onClick={() => setShowForgotModal(true)}
-                style={{
-                  ...styles.forgotLink, // Keep your existing link styles
-                  background: "none",
-                  border: "none",
-                  padding: "0",
-                  font: "inherit",
-                  cursor: "pointer",
-                  textDecoration: "underline" // Optional: ensures it looks like a link
-                }}
-              >
-                Forgot Password / UserName
-              </button>
-            </div>
+          <div style={styles.footerLinks}>
+            <button
+              onClick={() => setShowForgotModal(true)}
+              style={{
+                ...styles.forgotLink, // Keep your existing link styles
+                background: "none",
+                border: "none",
+                padding: "0",
+                font: "inherit",
+                cursor: "pointer",
+                textDecoration: "underline", // Optional: ensures it looks like a link
+              }}
+            >
+              Forgot Password / UserName
+            </button>
+          </div>
 
           <div style={styles.cardFooter}>
             <div style={styles.playBadge}>
