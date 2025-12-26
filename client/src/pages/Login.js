@@ -1,4 +1,4 @@
-import React, { useState, useContext } from "react";
+import React, { useState, useContext, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { AuthContext } from "../context/AuthContext";
@@ -10,6 +10,10 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [showForgotModal, setShowForgotModal] = useState(false);
 
+  // 🟢 NEW: Captcha States
+  const [captchaCode, setCaptchaCode] = useState("");
+  const [captchaInput, setCaptchaInput] = useState("");
+
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
 
@@ -17,9 +21,33 @@ const Login = () => {
   const SERVER_URL =
     "https://student-management-system-server-vygt.onrender.com";
 
+  // 🟢 NEW: Generate Random Captcha
+  const generateCaptcha = () => {
+    const chars = "0123456789";
+    let code = "";
+    for (let i = 0; i < 4; i++) {
+      code += chars[Math.floor(Math.random() * chars.length)];
+    }
+    setCaptchaCode(code);
+  };
+
+  // 🟢 NEW: Generate on component load
+  useEffect(() => {
+    generateCaptcha();
+  }, []);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+
+    // 🟢 NEW: Validate Captcha before API call
+    if (captchaInput !== captchaCode) {
+      setError("⚠️ Invalid Captcha. Please try again.");
+      generateCaptcha(); // Refresh to prevent spam
+      setCaptchaInput(""); // Clear field
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -32,13 +60,22 @@ const Login = () => {
         login(res.data.user);
         localStorage.setItem("token", res.data.token);
 
-        const role = res.data.user.role;
-        if (role === "Admin") navigate("/admin-dash");
-        else if (role === "Teacher") navigate("/teacher-dash");
-        else if (role === "Student") navigate("/student-dash");
+        // 🛡️ Safe Role Check (Handles "admin" vs "Admin")
+        // Kept your original routes: /admin-dash, /teacher-dash, /student-dash
+        const role = res.data.user.role ? res.data.user.role.toLowerCase() : "";
+        
+        if (role === "admin") navigate("/admin-dash");
+        else if (role === "teacher") navigate("/teacher-dash");
+        else if (role === "student") navigate("/student-dash");
+        else {
+            // Fallback if role is undefined or new
+            navigate("/student-dash"); 
+        }
       }
     } catch (err) {
       setError(err.response?.data?.message || "Invalid Credentials");
+      generateCaptcha(); // Refresh captcha on failed login
+      setCaptchaInput("");
     }
     setLoading(false);
   };
@@ -65,13 +102,13 @@ const Login = () => {
           <p style={styles.subtitle}>Welcome to Career Point University Kota</p>
         </div>
 
-        {error && <div style={styles.errorBanner}>⚠️ {error}</div>}
+        {error && <div style={styles.errorBanner}>{error}</div>}
 
         <form onSubmit={handleSubmit} style={styles.form}>
           {/* Email Field */}
           <div style={styles.inputGroup}>
             <input
-              type="email"
+              type="text" // Changed to text to allow Username or Email
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               style={styles.input}
@@ -94,14 +131,22 @@ const Login = () => {
             <span style={styles.inputIcon}>🔒</span>
           </div>
 
-          {/* Captcha Placeholder (Visual only as per request to match style) */}
+          {/* 🟢 UPDATED: Functional Captcha Section */}
           <div style={styles.captchaContainer}>
-            <div style={styles.captchaCode}>↻ 1 0 1 4</div>
+            <div 
+                style={styles.captchaCode} 
+                onClick={generateCaptcha} 
+                title="Click to Refresh"
+            >
+                ↻ {captchaCode.split("").join(" ")}
+            </div>
             <input
               type="text"
-              placeholder="Captcha"
+              placeholder="Enter Captcha"
               style={styles.captchaInput}
-              disabled
+              value={captchaInput}
+              onChange={(e) => setCaptchaInput(e.target.value)}
+              required
             />
           </div>
 
@@ -285,6 +330,8 @@ const styles = {
     flex: 1,
     textAlign: "center",
     border: "1px solid #ccc",
+    cursor: "pointer", // Added cursor pointer
+    userSelect: "none",
   },
   captchaInput: {
     flex: 1,
@@ -292,7 +339,7 @@ const styles = {
     borderRadius: "4px",
     border: "1px solid #ccc",
     fontSize: "14px",
-    backgroundColor: "#fafafa",
+    backgroundColor: "#fff", // Changed from gray to white
   },
 
   rememberRow: {
