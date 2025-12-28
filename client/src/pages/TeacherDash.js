@@ -2,23 +2,19 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
-// 📚 SUBJECT CONFIGURATION
+// 📚 CONFIG
 const SUBJECT_LIST = [
   "AWS Cloud Essentials",
-  "Computer Graphics and Multimedia Systems",
-  "Cryptography and Data Security",
-  "Software Quality Management",
-  "Enterprise Resource Planning Concepts",
-  "Cyber Law and Forensics",
+  "Computer Graphics",
+  "Data Security",
+  "Software Quality",
+  "ERP Concepts",
+  "Cyber Law",
 ];
 
-// Subjects that have the extra Practical (50) component
-const PRACTICAL_SUBJECTS = [
-  "AWS Cloud Essentials",
-  "Computer Graphics and Multimedia Systems",
-];
+const PRACTICAL_SUBJECTS = ["AWS Cloud Essentials", "Computer Graphics"];
 
-// 🎨 ICONS (SVG Components for a premium look)
+// 🎨 ICONS
 const Icons = {
   Home: () => (
     <svg
@@ -75,32 +71,6 @@ const Icons = {
       <line x1="6" y1="20" x2="6" y2="14"></line>
     </svg>
   ),
-  Search: () => (
-    <svg
-      width="18"
-      height="18"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      viewBox="0 0 24 24"
-    >
-      <circle cx="11" cy="11" r="8"></circle>
-      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-    </svg>
-  ),
-  Bell: () => (
-    <svg
-      width="20"
-      height="20"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      viewBox="0 0 24 24"
-    >
-      <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-      <path d="M13.73 21a2 2 0 01-3.46 0"></path>
-    </svg>
-  ),
   LogOut: () => (
     <svg
       width="20"
@@ -129,36 +99,59 @@ const Icons = {
       <line x1="3" y1="18" x2="21" y2="18"></line>
     </svg>
   ),
+  Search: () => (
+    <svg
+      width="18"
+      height="18"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      viewBox="0 0 24 24"
+    >
+      <circle cx="11" cy="11" r="8"></circle>
+      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+    </svg>
+  ),
 };
 
 const TeacherDash = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("dashboard");
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  // 🟢 RESPONSIVE STATE HANDLER
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(!isMobile);
 
   const SERVER_URL =
     "https://student-management-system-server-vygt.onrender.com";
 
-  // 👤 IDENTITY STATE
   const [teacher, setTeacher] = useState({
     name: "Professor",
     email: "",
     subject: SUBJECT_LIST[1],
   });
-
   const [students, setStudents] = useState([]);
   const [attendance, setAttendance] = useState({});
   const [marks, setMarks] = useState({});
-
-  // UI States
   const [selectedSubject, setSelectedSubject] = useState(SUBJECT_LIST[1]);
   const [selectedDate, setSelectedDate] = useState(
     new Date().toISOString().split("T")[0]
   );
   const [message, setMessage] = useState("");
 
-  // Helper: Check if current subject is practical
   const isPracticalSubject = PRACTICAL_SUBJECTS.includes(selectedSubject);
+
+  // 🔄 Handle Window Resize
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth <= 768;
+      setIsMobile(mobile);
+      if (!mobile) setIsSidebarOpen(true);
+      else setIsSidebarOpen(false);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   // 🔄 Initial Load
   useEffect(() => {
@@ -170,9 +163,8 @@ const TeacherDash = () => {
         email: user.email,
         subject: user.subject || "Assigned Subject",
       });
-      if (user.subject && SUBJECT_LIST.includes(user.subject)) {
+      if (user.subject && SUBJECT_LIST.includes(user.subject))
         setSelectedSubject(user.subject);
-      }
     } else {
       navigate("/");
     }
@@ -183,41 +175,29 @@ const TeacherDash = () => {
         const res = await axios.get(`${SERVER_URL}/api/admin/students`, {
           headers: { Authorization: token },
         });
-
-        if (res.data && res.data.length > 0) {
+        if (res.data?.length > 0) {
           setStudents(res.data);
           initializeData(res.data);
         }
       } catch (err) {
-        console.warn("Using Demo Data:", err);
-        const demoData = [
-          {
-            _id: "demo1",
-            name: "Lakshya Sharma",
-            roll: "CAL742",
-            email: "student@cpu.edu",
-          },
-          {
-            _id: "demo2",
-            name: "Mayank Madaan",
-            roll: "CAL755",
-            email: "mayank@cpu.edu",
-          },
+        // Fallback for demo
+        const demo = [
+          { _id: "1", name: "Lakshya", roll: "CAL01" },
+          { _id: "2", name: "Mayank", roll: "CAL02" },
         ];
-        setStudents(demoData);
-        initializeData(demoData);
+        setStudents(demo);
+        initializeData(demo);
       }
     };
-
     fetchStudents();
-  }, [navigate, SERVER_URL]);
+  }, [navigate]);
 
   const initializeData = (data) => {
-    const initialAtt = {};
-    const initialMarks = {};
+    const att = {};
+    const mks = {};
     data.forEach((s) => {
-      initialAtt[s._id] = "Present";
-      initialMarks[s._id] = {
+      att[s._id] = "Present";
+      mks[s._id] = {
         minor: "",
         major: "",
         assign: "",
@@ -225,57 +205,39 @@ const TeacherDash = () => {
         practical: "",
       };
     });
-    setAttendance(initialAtt);
-    setMarks(initialMarks);
+    setAttendance(att);
+    setMarks(mks);
   };
 
-  // 📝 Attendance Logic
-  const toggleAttendance = (id) => {
-    setAttendance((prev) => ({
-      ...prev,
-      [id]: prev[id] === "Present" ? "Absent" : "Present",
+  const toggleAttendance = (id) =>
+    setAttendance((p) => ({
+      ...p,
+      [id]: p[id] === "Present" ? "Absent" : "Present",
     }));
-  };
-
   const markAll = (status) => {
     const newStatus = {};
     students.forEach((s) => (newStatus[s._id] = status));
     setAttendance(newStatus);
   };
+  const handleMarkChange = (id, type, val) =>
+    setMarks((p) => ({ ...p, [id]: { ...p[id], [type]: val } }));
 
-  const submitAttendance = () => {
-    setMessage(`✅ Attendance Saved for ${selectedSubject}!`);
-    setTimeout(() => setMessage(""), 3000);
-  };
-
-  // 📊 Marks Logic
-  const handleMarkChange = (id, type, value) => {
-    setMarks((prev) => ({
-      ...prev,
-      [id]: { ...prev[id], [type]: value },
-    }));
-  };
-
-  // 🧠 Calculation Logic
   const getStudentStats = (id) => {
-    const sMarks = marks[id] || {};
+    const s = marks[id] || {};
     const total =
-      Number(sMarks.minor || 0) +
-      Number(sMarks.major || 0) +
-      Number(sMarks.assign || 0) +
-      Number(sMarks.quiz || 0) +
-      (isPracticalSubject ? Number(sMarks.practical || 0) : 0);
-    const passingMarks = isPracticalSubject ? 60 : 40;
-    const maxMarks = isPracticalSubject ? 150 : 100;
-
-    let status = "Pass",
-      statusColor = "#10b981";
-    if (total < passingMarks) {
-      status = passingMarks - total <= 5 ? "Re-Major" : "Summer";
-      statusColor = status === "Re-Major" ? "#f59e0b" : "#ef4444";
-    }
-
-    return { total, maxMarks, status, statusColor };
+      Number(s.minor || 0) +
+      Number(s.major || 0) +
+      Number(s.assign || 0) +
+      Number(s.quiz || 0) +
+      (isPracticalSubject ? Number(s.practical || 0) : 0);
+    const pass = isPracticalSubject ? 60 : 40;
+    const max = isPracticalSubject ? 150 : 100;
+    return {
+      total,
+      max,
+      status: total < pass ? "Fail" : "Pass",
+      color: total < pass ? "#ef4444" : "#10b981",
+    };
   };
 
   const presentCount = Object.values(attendance).filter(
@@ -286,11 +248,6 @@ const TeacherDash = () => {
       ? Math.round((presentCount / students.length) * 100)
       : 0;
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    navigate("/");
-  };
-
   return (
     <div style={styles.container}>
       {/* 🌑 SIDEBAR */}
@@ -298,7 +255,6 @@ const TeacherDash = () => {
         style={{
           ...styles.sidebar,
           transform: isSidebarOpen ? "translateX(0)" : "translateX(-100%)",
-          ...(window.innerWidth > 768 ? { transform: "none" } : {}),
         }}
       >
         <div style={styles.brand}>
@@ -313,7 +269,7 @@ const TeacherDash = () => {
             active={activeTab === "dashboard"}
             onClick={() => {
               setActiveTab("dashboard");
-              setIsSidebarOpen(false);
+              if (isMobile) setIsSidebarOpen(false);
             }}
           />
           <NavItem
@@ -322,7 +278,7 @@ const TeacherDash = () => {
             active={activeTab === "attendance"}
             onClick={() => {
               setActiveTab("attendance");
-              setIsSidebarOpen(false);
+              if (isMobile) setIsSidebarOpen(false);
             }}
           />
           <NavItem
@@ -331,7 +287,7 @@ const TeacherDash = () => {
             active={activeTab === "marks"}
             onClick={() => {
               setActiveTab("marks");
-              setIsSidebarOpen(false);
+              if (isMobile) setIsSidebarOpen(false);
             }}
           />
           <NavItem
@@ -340,55 +296,53 @@ const TeacherDash = () => {
             active={activeTab === "students"}
             onClick={() => {
               setActiveTab("students");
-              setIsSidebarOpen(false);
+              if (isMobile) setIsSidebarOpen(false);
             }}
           />
         </nav>
 
-        <button onClick={handleLogout} style={styles.logoutBtn}>
+        <button
+          onClick={() => {
+            localStorage.removeItem("token");
+            navigate("/");
+          }}
+          style={styles.logoutBtn}
+        >
           <Icons.LogOut /> <span>Sign Out</span>
         </button>
       </aside>
 
-      {/* MOBILE OVERLAY */}
-      {isSidebarOpen && window.innerWidth <= 768 && (
-        <div
-          style={styles.overlay}
-          onClick={() => setIsSidebarOpen(false)}
-        ></div>
+      {/* 🌑 MOBILE OVERLAY */}
+      {isMobile && isSidebarOpen && (
+        <div style={styles.overlay} onClick={() => setIsSidebarOpen(false)} />
       )}
 
       {/* ☀️ MAIN CONTENT */}
-      <main style={styles.main}>
+      <main
+        style={{
+          ...styles.main,
+          marginLeft: isMobile ? 0 : "260px", // 🟢 FIXED: Proper Logic for margin
+        }}
+      >
         {/* HEADER */}
         <header style={styles.header}>
           <div style={styles.headerLeft}>
-            <button
-              style={styles.menuBtn}
-              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            >
-              <Icons.Menu />
-            </button>
+            {isMobile && (
+              <button
+                style={styles.menuBtn}
+                onClick={() => setIsSidebarOpen(true)}
+              >
+                <Icons.Menu />
+              </button>
+            )}
             <h1 style={styles.pageTitle}>
               {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
             </h1>
           </div>
-
           <div style={styles.headerRight}>
-            <div style={styles.searchBar}>
-              <Icons.Search />
-              <input
-                type="text"
-                placeholder="Search..."
-                style={styles.searchInput}
-              />
-            </div>
             <div style={styles.profile}>
               <div style={styles.avatar}>{teacher.name.charAt(0)}</div>
-              <div style={styles.profileInfo}>
-                <span style={styles.profileName}>{teacher.name}</span>
-                <span style={styles.profileRole}>Faculty</span>
-              </div>
+              <span style={styles.profileName}>{teacher.name}</span>
             </div>
           </div>
         </header>
@@ -396,43 +350,44 @@ const TeacherDash = () => {
         {/* 📊 DASHBOARD TAB */}
         {activeTab === "dashboard" && (
           <div style={styles.content}>
-            {/* STATS ROW */}
+            {/* WELCOME BANNER */}
+            <div style={styles.welcomeBanner}>
+              <div>
+                <h2 style={{ margin: 0, fontSize: "24px" }}>
+                  Welcome back, {teacher.name}! 👋
+                </h2>
+                <p style={{ margin: "5px 0 0 0", opacity: 0.9 }}>
+                  Subject: {selectedSubject}
+                </p>
+              </div>
+            </div>
+
             <div style={styles.statsGrid}>
               <StatCard
                 label="Total Students"
                 value={students.length}
-                trend="+2 New"
-                icon={<Icons.Users />}
                 color="#3b82f6"
-                bg="#eff6ff"
+                icon={<Icons.Users />}
               />
               <StatCard
-                label="Avg. Attendance"
+                label="Attendance"
                 value={`${attendancePercent}%`}
-                trend="Stable"
-                icon={<Icons.Chart />}
                 color="#10b981"
-                bg="#ecfdf5"
+                icon={<Icons.Chart />}
               />
               <StatCard
-                label="Current Subject"
+                label="Type"
                 value={isPracticalSubject ? "Practical" : "Theory"}
-                trend={selectedSubject.substring(0, 15) + "..."}
-                icon={<Icons.Book />}
                 color="#f59e0b"
-                bg="#fffbeb"
+                icon={<Icons.Book />}
               />
             </div>
 
-            {/* CHARTS ROW */}
             <div style={styles.splitSection}>
-              {/* ATTENDANCE CHART */}
               <div style={styles.card}>
-                <div style={styles.cardHeader}>
-                  <h3>Attendance Overview</h3>
-                </div>
+                <h3>Attendance Overview</h3>
                 <div style={styles.chartContainer}>
-                  {[65, 80, 45, 90, 75, 60, 85].map((h, i) => (
+                  {[60, 80, 45, 90, 75, 60, 85].map((h, i) => (
                     <div key={i} style={styles.barWrapper}>
                       <div style={{ ...styles.bar, height: `${h}%` }}></div>
                       <span style={styles.barLabel}>
@@ -440,26 +395,6 @@ const TeacherDash = () => {
                       </span>
                     </div>
                   ))}
-                </div>
-              </div>
-
-              {/* TIMELINE */}
-              <div style={styles.card}>
-                <div style={styles.cardHeader}>
-                  <h3>Upcoming Classes</h3>
-                </div>
-                <div style={styles.timeline}>
-                  <TimelineItem
-                    time="10:00 AM"
-                    title={selectedSubject}
-                    desc="Lecture Hall A"
-                    active
-                  />
-                  <TimelineItem
-                    time="02:00 PM"
-                    title="Faculty Meeting"
-                    desc="Conference Room"
-                  />
                 </div>
               </div>
             </div>
@@ -472,60 +407,28 @@ const TeacherDash = () => {
             <div style={styles.card}>
               <div style={styles.cardHeaderRow}>
                 <h3>Mark Attendance</h3>
-                <div style={styles.controls}>
-                  <input
-                    type="date"
-                    value={selectedDate}
-                    onChange={(e) => setSelectedDate(e.target.value)}
-                    style={styles.input}
-                  />
-                  <select
-                    value={selectedSubject}
-                    onChange={(e) => setSelectedSubject(e.target.value)}
-                    style={styles.select}
-                  >
-                    {SUBJECT_LIST.map((sub, i) => (
-                      <option key={i} value={sub}>
-                        {sub}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  style={styles.input}
+                />
               </div>
-
               {message && <div style={styles.successMsg}>{message}</div>}
-
               <div style={styles.toolbar}>
-                <span>
-                  Summary:{" "}
-                  <strong style={{ color: "#10b981" }}>
-                    {presentCount} Present
-                  </strong>{" "}
-                  /{" "}
-                  <strong style={{ color: "#ef4444" }}>
-                    {students.length - presentCount} Absent
-                  </strong>
-                </span>
-                <div style={{ display: "flex", gap: "10px" }}>
-                  <button
-                    onClick={() => markAll("Present")}
-                    style={styles.smallBtn}
-                  >
-                    Mark All Present
-                  </button>
-                  <button
-                    onClick={() => markAll("Absent")}
-                    style={{
-                      ...styles.smallBtn,
-                      color: "red",
-                      background: "#fee2e2",
-                    }}
-                  >
-                    Mark All Absent
-                  </button>
-                </div>
+                <button
+                  onClick={() => markAll("Present")}
+                  style={styles.smallBtn}
+                >
+                  Mark All Present
+                </button>
+                <button
+                  onClick={() => markAll("Absent")}
+                  style={{ ...styles.smallBtn, color: "red" }}
+                >
+                  Mark All Absent
+                </button>
               </div>
-
               <div style={styles.gridList}>
                 {students.map((s) => (
                   <div
@@ -540,21 +443,20 @@ const TeacherDash = () => {
                     <div style={styles.avatarList}>{s.name.charAt(0)}</div>
                     <div>
                       <strong>{s.name}</strong>
-                      <p
-                        style={{
-                          fontSize: "12px",
-                          margin: 0,
-                          color: "#6b7280",
-                        }}
-                      >
-                        {s.roll}
-                      </p>
+                      <br />
+                      <small>{s.roll}</small>
                     </div>
                   </div>
                 ))}
               </div>
-              <button onClick={submitAttendance} style={styles.primaryBtn}>
-                Save Attendance
+              <button
+                onClick={() => {
+                  setMessage("Saved!");
+                  setTimeout(() => setMessage(""), 2000);
+                }}
+                style={styles.primaryBtn}
+              >
+                Save
               </button>
             </div>
           </div>
@@ -564,31 +466,14 @@ const TeacherDash = () => {
         {activeTab === "marks" && (
           <div style={styles.content}>
             <div style={styles.card}>
-              <div style={styles.cardHeaderRow}>
-                <h3>Gradebook: {selectedSubject}</h3>
-                <select
-                  value={selectedSubject}
-                  onChange={(e) => setSelectedSubject(e.target.value)}
-                  style={styles.select}
-                >
-                  {SUBJECT_LIST.map((sub, i) => (
-                    <option key={i} value={sub}>
-                      {sub}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
+              <h3>Gradebook: {selectedSubject}</h3>
               <div style={styles.tableWrap}>
                 <table style={styles.table}>
                   <thead>
                     <tr style={styles.trHead}>
                       <th>Student</th>
-                      <th>Minor (20)</th>
-                      <th>Major (60)</th>
-                      <th>Assign (10)</th>
-                      <th>Quiz (10)</th>
-                      {isPracticalSubject && <th>Practical (50)</th>}
+                      <th>Minor</th>
+                      <th>Major</th>
                       <th>Total</th>
                       <th>Status</th>
                     </tr>
@@ -600,51 +485,35 @@ const TeacherDash = () => {
                         <tr key={s._id} style={styles.tr}>
                           <td style={styles.td}>
                             <b>{s.name}</b>
-                            <br />
-                            <small style={{ color: "#6b7280" }}>{s.roll}</small>
                           </td>
-                          {["minor", "major", "assign", "quiz"].map((type) => (
-                            <td key={type} style={styles.td}>
-                              <input
-                                type="number"
-                                placeholder="0"
-                                style={styles.markInput}
-                                value={marks[s._id]?.[type]}
-                                onChange={(e) =>
-                                  handleMarkChange(s._id, type, e.target.value)
-                                }
-                              />
-                            </td>
-                          ))}
-                          {isPracticalSubject && (
-                            <td style={styles.td}>
-                              <input
-                                type="number"
-                                placeholder="0"
-                                style={{
-                                  ...styles.markInput,
-                                  borderColor: "#3b82f6",
-                                }}
-                                value={marks[s._id]?.practical}
-                                onChange={(e) =>
-                                  handleMarkChange(
-                                    s._id,
-                                    "practical",
-                                    e.target.value
-                                  )
-                                }
-                              />
-                            </td>
-                          )}
                           <td style={styles.td}>
-                            <strong>{stats.total}</strong> / {stats.maxMarks}
+                            <input
+                              type="number"
+                              style={styles.markInput}
+                              value={marks[s._id]?.minor}
+                              onChange={(e) =>
+                                handleMarkChange(s._id, "minor", e.target.value)
+                              }
+                            />
+                          </td>
+                          <td style={styles.td}>
+                            <input
+                              type="number"
+                              style={styles.markInput}
+                              value={marks[s._id]?.major}
+                              onChange={(e) =>
+                                handleMarkChange(s._id, "major", e.target.value)
+                              }
+                            />
+                          </td>
+                          <td style={styles.td}>
+                            <strong>{stats.total}</strong>
                           </td>
                           <td style={styles.td}>
                             <span
                               style={{
                                 ...styles.statusBadge,
-                                background: stats.statusColor,
-                                color: "#fff",
+                                background: stats.color,
                               }}
                             >
                               {stats.status}
@@ -656,16 +525,6 @@ const TeacherDash = () => {
                   </tbody>
                 </table>
               </div>
-              <button
-                onClick={() => {
-                  setMessage("✅ Marks Uploaded!");
-                  setTimeout(() => setMessage(""), 3000);
-                }}
-                style={styles.primaryBtn}
-              >
-                Upload Marks
-              </button>
-              {message && <div style={styles.successMsg}>{message}</div>}
             </div>
           </div>
         )}
@@ -675,30 +534,24 @@ const TeacherDash = () => {
           <div style={styles.content}>
             <div style={styles.card}>
               <h3>Enrolled Students</h3>
-              <div style={styles.tableWrap}>
-                <table style={styles.table}>
-                  <thead>
-                    <tr style={styles.trHead}>
-                      <th>Name</th>
-                      <th>Email</th>
-                      <th>Course</th>
-                      <th>Action</th>
+              <table style={styles.table}>
+                <thead>
+                  <tr style={styles.trHead}>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Roll</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {students.map((s) => (
+                    <tr key={s._id} style={styles.tr}>
+                      <td style={styles.td}>{s.name}</td>
+                      <td style={styles.td}>{s.email}</td>
+                      <td style={styles.td}>{s.roll}</td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {students.map((s) => (
-                      <tr key={s._id} style={styles.tr}>
-                        <td style={styles.td}>{s.name}</td>
-                        <td style={styles.td}>{s.email}</td>
-                        <td style={styles.td}>{s.course || "N/A"}</td>
-                        <td style={styles.td}>
-                          <button style={styles.smallBtn}>View Profile</button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
@@ -713,40 +566,17 @@ const NavItem = ({ icon, label, active, onClick }) => (
     onClick={onClick}
     style={{ ...styles.navItem, ...(active ? styles.navItemActive : {}) }}
   >
-    {icon}
-    <span style={{ marginLeft: "12px" }}>{label}</span>
+    {icon} <span style={{ marginLeft: "12px" }}>{label}</span>
   </div>
 );
 
-const StatCard = ({ label, value, trend, icon, color, bg }) => (
-  <div style={styles.statCard}>
-    <div style={styles.statInfo}>
-      <span style={styles.statLabel}>{label}</span>
-      <h3 style={styles.statValue}>{value}</h3>
-      <span style={{ ...styles.statTrend, color: color }}>{trend}</span>
+const StatCard = ({ label, value, color, icon }) => (
+  <div style={{ ...styles.statCard, borderTop: `4px solid ${color}` }}>
+    <div>
+      <p style={{ margin: 0, color: "#6b7280", fontSize: "13px" }}>{label}</p>
+      <h3 style={{ margin: "5px 0", fontSize: "24px" }}>{value}</h3>
     </div>
-    <div style={{ ...styles.statIcon, color: color, backgroundColor: bg }}>
-      {icon}
-    </div>
-  </div>
-);
-
-const TimelineItem = ({ time, title, desc, active }) => (
-  <div style={styles.timelineItem}>
-    <div style={styles.timelineLeft}>
-      <div
-        style={{
-          ...styles.timelineDot,
-          ...(active ? { background: "#3b82f6", border: "none" } : {}),
-        }}
-      ></div>
-      {active && <div style={styles.timelineLine}></div>}
-    </div>
-    <div style={styles.timelineContent}>
-      <span style={styles.time}>{time}</span>
-      <h4 style={styles.timelineTitle}>{title}</h4>
-      <p style={styles.timelineDesc}>{desc}</p>
-    </div>
+    <div style={{ color }}>{icon}</div>
   </div>
 );
 
@@ -754,10 +584,9 @@ const TimelineItem = ({ time, title, desc, active }) => (
 const styles = {
   container: {
     display: "flex",
-    height: "100vh",
+    minHeight: "100vh",
     backgroundColor: "#f3f4f6",
     fontFamily: "'Inter', sans-serif",
-    overflow: "hidden",
   },
 
   // SIDEBAR
@@ -772,13 +601,14 @@ const styles = {
     height: "100%",
     zIndex: 100,
     transition: "transform 0.3s ease",
+    top: 0,
+    left: 0,
   },
   brand: {
     display: "flex",
     alignItems: "center",
     gap: "10px",
     marginBottom: "40px",
-    paddingLeft: "10px",
   },
   brandIcon: {
     width: "32px",
@@ -788,10 +618,9 @@ const styles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    fontSize: "18px",
   },
   brandText: { fontSize: "18px", fontWeight: "600", margin: 0 },
-  nav: { flex: 1, display: "flex", flexDirection: "column", gap: "10px" },
+  nav: { flex: 1, display: "flex", flexDirection: "column", gap: "8px" },
   navItem: {
     display: "flex",
     alignItems: "center",
@@ -799,7 +628,7 @@ const styles = {
     borderRadius: "8px",
     cursor: "pointer",
     color: "#9ca3af",
-    transition: "all 0.2s",
+    transition: "0.2s",
   },
   navItemActive: {
     backgroundColor: "rgba(59, 130, 246, 0.1)",
@@ -809,7 +638,7 @@ const styles = {
     display: "flex",
     alignItems: "center",
     gap: "10px",
-    padding: "12px 15px",
+    padding: "12px",
     background: "none",
     border: "1px solid #dc2626",
     color: "#dc2626",
@@ -827,14 +656,13 @@ const styles = {
     zIndex: 90,
   },
 
-  // MAIN AREA
+  // MAIN
   main: {
     flex: 1,
-    marginLeft: "260px",
     display: "flex",
     flexDirection: "column",
-    overflowY: "auto",
-    "@media (max-width: 768px)": { marginLeft: 0 },
+    minHeight: "100vh",
+    width: "100%",
   },
   header: {
     height: "70px",
@@ -842,7 +670,7 @@ const styles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: "0 30px",
+    padding: "0 20px",
     borderBottom: "1px solid #e5e7eb",
     position: "sticky",
     top: 0,
@@ -853,41 +681,13 @@ const styles = {
     background: "none",
     border: "none",
     cursor: "pointer",
-    display: "none",
-    "@media (max-width: 768px)": { display: "block" },
+    padding: 0,
   },
-  pageTitle: {
-    fontSize: "20px",
-    fontWeight: "600",
-    color: "#111827",
-    margin: 0,
-  },
-  headerRight: { display: "flex", alignItems: "center", gap: "20px" },
-  searchBar: {
-    display: "flex",
-    alignItems: "center",
-    backgroundColor: "#f3f4f6",
-    padding: "8px 15px",
-    borderRadius: "20px",
-    color: "#6b7280",
-  },
-  searchInput: {
-    border: "none",
-    background: "transparent",
-    outline: "none",
-    marginLeft: "8px",
-    fontSize: "14px",
-  },
-  profile: {
-    display: "flex",
-    alignItems: "center",
-    gap: "10px",
-    borderLeft: "1px solid #e5e7eb",
-    paddingLeft: "20px",
-  },
+  pageTitle: { fontSize: "20px", fontWeight: "600", margin: 0 },
+  profile: { display: "flex", alignItems: "center", gap: "10px" },
   avatar: {
-    width: "36px",
-    height: "36px",
+    width: "35px",
+    height: "35px",
     backgroundColor: "#3b82f6",
     color: "#fff",
     borderRadius: "50%",
@@ -895,17 +695,23 @@ const styles = {
     alignItems: "center",
     justifyContent: "center",
     fontWeight: "bold",
-    fontSize: "14px",
   },
-  profileInfo: { display: "flex", flexDirection: "column" },
-  profileName: { fontSize: "14px", fontWeight: "600", color: "#1f2937" },
-  profileRole: { fontSize: "11px", color: "#6b7280" },
+  profileName: { fontSize: "14px", fontWeight: "600" },
 
-  // CONTENT & DASHBOARD
-  content: { padding: "30px" },
+  // CONTENT
+  content: { padding: "20px" },
+  welcomeBanner: {
+    background: "linear-gradient(135deg, #1e40af, #3b82f6)",
+    padding: "30px",
+    borderRadius: "12px",
+    color: "white",
+    marginBottom: "30px",
+    boxShadow: "0 4px 15px rgba(59, 130, 246, 0.4)",
+  },
+
   statsGrid: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+    gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
     gap: "20px",
     marginBottom: "30px",
   },
@@ -913,59 +719,27 @@ const styles = {
     backgroundColor: "#fff",
     padding: "20px",
     borderRadius: "12px",
-    boxShadow: "0 2px 4px rgba(0,0,0,0.02)",
+    boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
     display: "flex",
     justifyContent: "space-between",
-    alignItems: "flex-start",
-    border: "1px solid #f3f4f6",
-  },
-  statInfo: { display: "flex", flexDirection: "column" },
-  statLabel: { fontSize: "13px", color: "#6b7280", marginBottom: "5px" },
-  statValue: {
-    fontSize: "24px",
-    fontWeight: "700",
-    color: "#111827",
-    margin: "0 0 5px 0",
-  },
-  statTrend: { fontSize: "12px", fontWeight: "500" },
-  statIcon: {
-    width: "40px",
-    height: "40px",
-    borderRadius: "10px",
-    display: "flex",
     alignItems: "center",
-    justifyContent: "center",
   },
 
-  splitSection: {
-    display: "grid",
-    gridTemplateColumns: "2fr 1fr",
-    gap: "20px",
-    "@media (max-width: 1024px)": { gridTemplateColumns: "1fr" },
-  },
   card: {
     backgroundColor: "#fff",
     borderRadius: "12px",
     padding: "20px",
-    boxShadow: "0 2px 4px rgba(0,0,0,0.02)",
-    border: "1px solid #f3f4f6",
+    boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
     marginBottom: "20px",
-  },
-  cardHeader: {
-    marginBottom: "20px",
-    borderBottom: "1px solid #f3f4f6",
-    paddingBottom: "10px",
   },
   cardHeaderRow: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: "20px",
-    flexWrap: "wrap",
-    gap: "10px",
   },
 
-  // CHARTS & TIMELINE
+  // CHARTS
   chartContainer: {
     display: "flex",
     justifyContent: "space-between",
@@ -986,90 +760,34 @@ const styles = {
     transition: "height 0.3s ease",
   },
   barLabel: { marginTop: "10px", fontSize: "12px", color: "#9ca3af" },
-  timeline: { display: "flex", flexDirection: "column", gap: "20px" },
-  timelineItem: { display: "flex", gap: "15px" },
-  timelineLeft: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-  },
-  timelineDot: {
-    width: "12px",
-    height: "12px",
-    borderRadius: "50%",
-    border: "2px solid #e5e7eb",
-    backgroundColor: "#fff",
-    zIndex: 2,
-  },
-  timelineLine: {
-    width: "2px",
-    flex: 1,
-    backgroundColor: "#e5e7eb",
-    marginTop: "5px",
-  },
-  timelineContent: { paddingBottom: "10px" },
-  time: { fontSize: "11px", color: "#9ca3af", fontWeight: "600" },
-  timelineTitle: {
-    fontSize: "14px",
-    fontWeight: "600",
-    color: "#1f2937",
-    margin: "2px 0",
-  },
-  timelineDesc: { fontSize: "12px", color: "#6b7280", margin: 0 },
 
-  // CONTROLS & TABLES
-  controls: { display: "flex", gap: "10px" },
-  input: {
-    padding: "8px",
-    borderRadius: "6px",
+  // TABLES & INPUTS
+  tableWrap: { overflowX: "auto" },
+  table: { width: "100%", borderCollapse: "collapse", minWidth: "600px" },
+  trHead: { background: "#f9fafb", textAlign: "left", color: "#6b7280" },
+  tr: { borderBottom: "1px solid #f3f4f6" },
+  td: { padding: "12px" },
+  input: { padding: "8px", borderRadius: "6px", border: "1px solid #e5e7eb" },
+  markInput: {
+    width: "60px",
+    padding: "6px",
     border: "1px solid #e5e7eb",
-    outline: "none",
+    borderRadius: "4px",
+    textAlign: "center",
   },
-  select: {
-    padding: "8px",
-    borderRadius: "6px",
-    border: "1px solid #e5e7eb",
-    outline: "none",
-  },
-  toolbar: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    background: "#f9fafb",
-    padding: "15px",
-    borderRadius: "8px",
-    marginBottom: "20px",
-    flexWrap: "wrap",
-    gap: "10px",
-  },
-  smallBtn: {
-    padding: "6px 12px",
-    background: "#fff",
-    border: "1px solid #e5e7eb",
-    borderRadius: "6px",
-    cursor: "pointer",
+  statusBadge: {
+    padding: "4px 10px",
+    borderRadius: "12px",
     fontSize: "12px",
-    fontWeight: "600",
-    color: "#4b5563",
-  },
-  primaryBtn: {
-    padding: "12px 20px",
-    background: "#1a1a2e",
+    fontWeight: "bold",
     color: "#fff",
-    border: "none",
-    borderRadius: "8px",
-    width: "100%",
-    fontSize: "14px",
-    fontWeight: "600",
-    cursor: "pointer",
-    marginTop: "20px",
   },
 
-  // ATTENDANCE GRID
   gridList: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+    gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
     gap: "15px",
+    marginBottom: "20px",
   },
   studentCardPresent: {
     padding: "15px",
@@ -1078,8 +796,8 @@ const styles = {
     background: "#ecfdf5",
     cursor: "pointer",
     display: "flex",
+    gap: "10px",
     alignItems: "center",
-    gap: "15px",
   },
   studentCardAbsent: {
     padding: "15px",
@@ -1088,61 +806,45 @@ const styles = {
     background: "#fef2f2",
     cursor: "pointer",
     display: "flex",
+    gap: "10px",
     alignItems: "center",
-    gap: "15px",
-    opacity: 0.8,
   },
   avatarList: {
-    width: "32px",
-    height: "32px",
+    width: "30px",
+    height: "30px",
     borderRadius: "50%",
     background: "#e5e7eb",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    fontWeight: "bold",
     fontSize: "12px",
-    color: "#4b5563",
   },
 
-  // TABLE
-  tableWrap: { overflowX: "auto" },
-  table: { width: "100%", borderCollapse: "collapse", minWidth: "600px" },
-  trHead: {
-    background: "#f9fafb",
-    textAlign: "left",
-    color: "#6b7280",
-    fontSize: "13px",
-  },
-  tr: { borderBottom: "1px solid #f3f4f6" },
-  td: {
-    padding: "15px",
-    verticalAlign: "middle",
-    fontSize: "14px",
-    color: "#374151",
-  },
-  markInput: {
-    width: "60px",
-    padding: "8px",
-    textAlign: "center",
-    border: "1px solid #e5e7eb",
+  primaryBtn: {
+    padding: "10px 20px",
+    background: "#1a1a2e",
+    color: "#fff",
+    border: "none",
     borderRadius: "6px",
-    outline: "none",
+    cursor: "pointer",
+    width: "100%",
   },
-  statusBadge: {
-    padding: "4px 10px",
-    borderRadius: "12px",
+  smallBtn: {
+    padding: "5px 10px",
+    background: "#fff",
+    border: "1px solid #e5e7eb",
+    borderRadius: "4px",
+    cursor: "pointer",
     fontSize: "12px",
-    fontWeight: "600",
   },
+  toolbar: { display: "flex", gap: "10px", marginBottom: "15px" },
   successMsg: {
     padding: "10px",
     background: "#d1fae5",
     color: "#065f46",
     borderRadius: "6px",
-    marginBottom: "20px",
+    marginBottom: "15px",
     textAlign: "center",
-    fontSize: "14px",
   },
 };
 
