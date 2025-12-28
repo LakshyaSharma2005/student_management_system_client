@@ -10,18 +10,18 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [showForgotModal, setShowForgotModal] = useState(false);
 
-  // 🟢 NEW: Captcha States
+  // 🟢 Captcha States
   const [captchaCode, setCaptchaCode] = useState("");
   const [captchaInput, setCaptchaInput] = useState("");
 
-  const { login } = useContext(AuthContext);
+  // 🟢 Get 'user' from context so we can watch for updates
+  const { login, user } = useContext(AuthContext);
   const navigate = useNavigate();
 
-  // 🔒 HARDCODED BACKEND URL
   const SERVER_URL =
     "https://student-management-system-server-vygt.onrender.com";
 
-  // 🟢 NEW: Generate Random Captcha
+  // 🟢 Generate Random Captcha
   const generateCaptcha = () => {
     const chars = "0123456789";
     let code = "";
@@ -31,20 +31,32 @@ const Login = () => {
     setCaptchaCode(code);
   };
 
-  // 🟢 NEW: Generate on component load
+  // Generate on load
   useEffect(() => {
     generateCaptcha();
   }, []);
+
+  // 🟢 FIX: Navigate ONLY after 'user' state is confirmed
+  useEffect(() => {
+    if (user) {
+      const role = user.role ? user.role.toLowerCase() : "";
+
+      if (role === "admin") navigate("/admin-dash");
+      else if (role === "teacher") navigate("/teacher-dash");
+      else if (role === "student") navigate("/student-dash");
+      else navigate("/student-dash");
+    }
+  }, [user, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
-    // 🟢 NEW: Validate Captcha before API call
+    // Validate Captcha
     if (captchaInput !== captchaCode) {
       setError("⚠️ Invalid Captcha. Please try again.");
-      generateCaptcha(); // Refresh to prevent spam
-      setCaptchaInput(""); // Clear field
+      generateCaptcha();
+      setCaptchaInput("");
       return;
     }
 
@@ -57,38 +69,26 @@ const Login = () => {
       });
 
       if (res.data.token && res.data.user) {
-        login(res.data.user);
+        // 🟢 JUST update state. The useEffect above will handle navigation.
         localStorage.setItem("token", res.data.token);
-
-        // 🛡️ Safe Role Check (Handles "admin" vs "Admin")
-        // Kept your original routes: /admin-dash, /teacher-dash, /student-dash
-        const role = res.data.user.role ? res.data.user.role.toLowerCase() : "";
-        
-        if (role === "admin") navigate("/admin-dash");
-        else if (role === "teacher") navigate("/teacher-dash");
-        else if (role === "student") navigate("/student-dash");
-        else {
-            // Fallback if role is undefined or new
-            navigate("/student-dash"); 
-        }
+        login(res.data.user);
       }
     } catch (err) {
       setError(err.response?.data?.message || "Invalid Credentials");
-      generateCaptcha(); // Refresh captcha on failed login
+      generateCaptcha();
       setCaptchaInput("");
+      setLoading(false); // Only stop loading on error
     }
-    setLoading(false);
+    // Note: We don't set loading(false) on success because we want the
+    // button to stay "Signing In..." until the page actually changes.
   };
 
   return (
     <div style={styles.page}>
-      {/* Background decoration to match CPU style */}
       <div style={styles.bgWave}></div>
 
       <div style={styles.loginCard}>
-        {/* Header Section */}
         <div style={styles.header}>
-          {/* Using a text logo/icon to mimic the CPU logo for now */}
           <div style={styles.logoContainer}>
             <span style={styles.logoIcon}>🎓</span>
             <h1 style={styles.logoText}>
@@ -97,7 +97,6 @@ const Login = () => {
               <span style={styles.universityText}>UNIVERSITY</span>
             </h1>
           </div>
-
           <h2 style={styles.signInTitle}>Sign In</h2>
           <p style={styles.subtitle}>Welcome to Career Point University Kota</p>
         </div>
@@ -105,10 +104,9 @@ const Login = () => {
         {error && <div style={styles.errorBanner}>{error}</div>}
 
         <form onSubmit={handleSubmit} style={styles.form}>
-          {/* Email Field */}
           <div style={styles.inputGroup}>
             <input
-              type="text" // Changed to text to allow Username or Email
+              type="text"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               style={styles.input}
@@ -118,7 +116,6 @@ const Login = () => {
             <span style={styles.inputIcon}>👤</span>
           </div>
 
-          {/* Password Field */}
           <div style={styles.inputGroup}>
             <input
               type="password"
@@ -131,14 +128,13 @@ const Login = () => {
             <span style={styles.inputIcon}>🔒</span>
           </div>
 
-          {/* 🟢 UPDATED: Functional Captcha Section */}
           <div style={styles.captchaContainer}>
-            <div 
-                style={styles.captchaCode} 
-                onClick={generateCaptcha} 
-                title="Click to Refresh"
+            <div
+              style={styles.captchaCode}
+              onClick={generateCaptcha}
+              title="Click to Refresh"
             >
-                ↻ {captchaCode.split("").join(" ")}
+              ↻ {captchaCode.split("").join(" ")}
             </div>
             <input
               type="text"
@@ -172,7 +168,6 @@ const Login = () => {
           </span>
         </p>
 
-        {/* App Store Badge Placeholder */}
         <div style={{ marginTop: "20px", textAlign: "center" }}>
           <div style={styles.appBadge}>
             GET IT ON
@@ -182,7 +177,6 @@ const Login = () => {
         </div>
       </div>
 
-      {/* 🔐 FORGOT PASSWORD MODAL */}
       {showForgotModal && (
         <div style={styles.modalOverlay}>
           <div style={styles.modalCard}>
@@ -212,7 +206,7 @@ const Login = () => {
   );
 };
 
-/* 🎨 CPU THEME STYLES */
+/* 🎨 STYLES (Unchanged) */
 const styles = {
   page: {
     height: "100vh",
@@ -220,19 +214,18 @@ const styles = {
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    background: "#f0f2f5", // Light gray background
+    background: "#f0f2f5",
     fontFamily: "'Segoe UI', sans-serif",
     position: "relative",
     overflow: "hidden",
   },
-  // Blue wave/header background effect
   bgWave: {
     position: "absolute",
     top: 0,
     left: 0,
     width: "100%",
     height: "50%",
-    background: "#003366", // CPU Blue
+    background: "#003366",
     borderBottomRightRadius: "50% 20%",
     borderBottomLeftRadius: "50% 20%",
     zIndex: 0,
@@ -268,7 +261,6 @@ const styles = {
     fontWeight: "normal",
     letterSpacing: "2px",
   },
-
   signInTitle: {
     fontSize: "24px",
     fontWeight: "600",
@@ -277,7 +269,6 @@ const styles = {
     marginTop: "0",
   },
   subtitle: { margin: "0 0 20px", color: "#666", fontSize: "14px" },
-
   errorBanner: {
     background: "#fdecea",
     color: "#d93025",
@@ -288,9 +279,7 @@ const styles = {
     textAlign: "center",
     border: "1px solid #f2dede",
   },
-
   form: { display: "flex", flexDirection: "column", gap: "15px" },
-
   inputGroup: { position: "relative" },
   inputIcon: {
     position: "absolute",
@@ -302,7 +291,7 @@ const styles = {
   },
   input: {
     width: "100%",
-    padding: "12px 40px 12px 12px", // Space for icon
+    padding: "12px 40px 12px 12px",
     borderRadius: "4px",
     border: "1px solid #ccc",
     fontSize: "14px",
@@ -311,7 +300,6 @@ const styles = {
     boxSizing: "border-box",
     transition: "border-color 0.3s",
   },
-
   captchaContainer: {
     display: "flex",
     gap: "10px",
@@ -330,7 +318,7 @@ const styles = {
     flex: 1,
     textAlign: "center",
     border: "1px solid #ccc",
-    cursor: "pointer", // Added cursor pointer
+    cursor: "pointer",
     userSelect: "none",
   },
   captchaInput: {
@@ -339,9 +327,8 @@ const styles = {
     borderRadius: "4px",
     border: "1px solid #ccc",
     fontSize: "14px",
-    backgroundColor: "#fff", // Changed from gray to white
+    backgroundColor: "#fff",
   },
-
   rememberRow: {
     display: "flex",
     alignItems: "center",
@@ -353,11 +340,10 @@ const styles = {
     alignItems: "center",
     cursor: "pointer",
   },
-
   button: {
     width: "100%",
     padding: "12px",
-    background: "#1a1a2e", // Dark Navy like in screenshot button
+    background: "#1a1a2e",
     color: "#fff",
     border: "none",
     borderRadius: "6px",
@@ -379,7 +365,6 @@ const styles = {
     cursor: "not-allowed",
     marginTop: "10px",
   },
-
   footer: {
     textAlign: "center",
     marginTop: "20px",
@@ -391,7 +376,6 @@ const styles = {
     cursor: "pointer",
     textDecoration: "none",
   },
-
   appBadge: {
     background: "#000",
     color: "#fff",
@@ -403,8 +387,6 @@ const styles = {
     lineHeight: "1.2",
     cursor: "pointer",
   },
-
-  // MODAL
   modalOverlay: {
     position: "fixed",
     top: 0,
