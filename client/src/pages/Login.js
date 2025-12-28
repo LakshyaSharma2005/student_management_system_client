@@ -14,16 +14,14 @@ const Login = () => {
   const [captchaCode, setCaptchaCode] = useState("");
   const [captchaInput, setCaptchaInput] = useState("");
 
-  // 🟢 NEW: State to control redirection
-  const [canRedirect, setCanRedirect] = useState(false);
-
+  // 🟢 Get 'user' from context so we can watch for updates
   const { login, user } = useContext(AuthContext);
   const navigate = useNavigate();
 
   const SERVER_URL =
     "https://student-management-system-server-vygt.onrender.com";
 
-  // 🟢 Generate Captcha
+  // 🟢 Generate Random Captcha
   const generateCaptcha = () => {
     const chars = "0123456789";
     let code = "";
@@ -33,15 +31,14 @@ const Login = () => {
     setCaptchaCode(code);
   };
 
+  // Generate on load
   useEffect(() => {
     generateCaptcha();
-    // 🛑 FORCE LOGOUT ON LOAD: Clear old tokens so the Login Page ALWAYS shows
-    localStorage.removeItem("token");
   }, []);
 
-  // 🟢 FIX: Only navigate if 'user' exists AND we explicitly allowed it (via Login button)
+  // 🟢 FIX: Navigate ONLY after 'user' state is confirmed
   useEffect(() => {
-    if (user && canRedirect) {
+    if (user) {
       const role = user.role ? user.role.toLowerCase() : "";
 
       if (role === "admin") navigate("/admin-dash");
@@ -49,12 +46,13 @@ const Login = () => {
       else if (role === "student") navigate("/student-dash");
       else navigate("/student-dash");
     }
-  }, [user, canRedirect, navigate]);
+  }, [user, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
+    // Validate Captcha
     if (captchaInput !== captchaCode) {
       setError("⚠️ Invalid Captcha. Please try again.");
       generateCaptcha();
@@ -71,10 +69,7 @@ const Login = () => {
       });
 
       if (res.data.token && res.data.user) {
-        // 🟢 1. Allow redirection to happen
-        setCanRedirect(true);
-
-        // 🟢 2. Update Auth State
+        // 🟢 JUST update state. The useEffect above will handle navigation.
         localStorage.setItem("token", res.data.token);
         login(res.data.user);
       }
@@ -82,8 +77,10 @@ const Login = () => {
       setError(err.response?.data?.message || "Invalid Credentials");
       generateCaptcha();
       setCaptchaInput("");
-      setLoading(false);
+      setLoading(false); // Only stop loading on error
     }
+    // Note: We don't set loading(false) on success because we want the 
+    // button to stay "Signing In..." until the page actually changes.
   };
 
   return (
@@ -132,12 +129,12 @@ const Login = () => {
           </div>
 
           <div style={styles.captchaContainer}>
-            <div
-              style={styles.captchaCode}
-              onClick={generateCaptcha}
-              title="Click to Refresh"
+            <div 
+                style={styles.captchaCode} 
+                onClick={generateCaptcha} 
+                title="Click to Refresh"
             >
-              ↻ {captchaCode.split("").join(" ")}
+                ↻ {captchaCode.split("").join(" ")}
             </div>
             <input
               type="text"
@@ -188,9 +185,7 @@ const Login = () => {
               Contact the administration to reset your credentials.
             </p>
             <div style={styles.adminContact}>
-              <p>
-                <strong>Admin Contact:</strong>
-              </p>
+              <p><strong>Admin Contact:</strong></p>
               <p style={{ color: "#003366", fontWeight: "bold" }}>
                 support@cpur.edu.in
               </p>
