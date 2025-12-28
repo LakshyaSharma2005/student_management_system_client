@@ -14,14 +14,16 @@ const Login = () => {
   const [captchaCode, setCaptchaCode] = useState("");
   const [captchaInput, setCaptchaInput] = useState("");
 
-  // 🟢 Get 'user' from context so we can watch for updates
+  // 🟢 NEW: State to control redirection
+  const [canRedirect, setCanRedirect] = useState(false);
+
   const { login, user } = useContext(AuthContext);
   const navigate = useNavigate();
 
   const SERVER_URL =
     "https://student-management-system-server-vygt.onrender.com";
 
-  // 🟢 Generate Random Captcha
+  // 🟢 Generate Captcha
   const generateCaptcha = () => {
     const chars = "0123456789";
     let code = "";
@@ -31,14 +33,15 @@ const Login = () => {
     setCaptchaCode(code);
   };
 
-  // Generate on load
   useEffect(() => {
     generateCaptcha();
+    // 🛑 FORCE LOGOUT ON LOAD: Clear old tokens so the Login Page ALWAYS shows
+    localStorage.removeItem("token");
   }, []);
 
-  // 🟢 FIX: Navigate ONLY after 'user' state is confirmed
+  // 🟢 FIX: Only navigate if 'user' exists AND we explicitly allowed it (via Login button)
   useEffect(() => {
-    if (user) {
+    if (user && canRedirect) {
       const role = user.role ? user.role.toLowerCase() : "";
 
       if (role === "admin") navigate("/admin-dash");
@@ -46,13 +49,12 @@ const Login = () => {
       else if (role === "student") navigate("/student-dash");
       else navigate("/student-dash");
     }
-  }, [user, navigate]);
+  }, [user, canRedirect, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
-    // Validate Captcha
     if (captchaInput !== captchaCode) {
       setError("⚠️ Invalid Captcha. Please try again.");
       generateCaptcha();
@@ -69,7 +71,10 @@ const Login = () => {
       });
 
       if (res.data.token && res.data.user) {
-        // 🟢 JUST update state. The useEffect above will handle navigation.
+        // 🟢 1. Allow redirection to happen
+        setCanRedirect(true);
+
+        // 🟢 2. Update Auth State
         localStorage.setItem("token", res.data.token);
         login(res.data.user);
       }
@@ -77,10 +82,8 @@ const Login = () => {
       setError(err.response?.data?.message || "Invalid Credentials");
       generateCaptcha();
       setCaptchaInput("");
-      setLoading(false); // Only stop loading on error
+      setLoading(false);
     }
-    // Note: We don't set loading(false) on success because we want the
-    // button to stay "Signing In..." until the page actually changes.
   };
 
   return (
