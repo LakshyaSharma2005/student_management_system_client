@@ -58,7 +58,7 @@ A comprehensive, responsive web application for managing university operations. 
 
 | Student Dashboard | Responsive Mobile View |
 |:---:|:---:|
-| <img src="./images/Student%20Dashboard.png" alt="Student Dashboard" width="500"> | <img src="./images/Mobile%20View.png" alt="Mobile View" width="250"> |
+| <img src="./images/Student%20Dashboard.png" alt="Student Dashboard" width="100%"> | <img src="./images/Mobile%20View.png" alt="Mobile View" width="200"> |
 
 *(Tip: Filenames with spaces must use %20 in Markdown links)*
 
