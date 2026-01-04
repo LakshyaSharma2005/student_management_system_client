@@ -54,7 +54,7 @@ A comprehensive, responsive web application for managing university operations. 
 
 | Admin Dashboard | Teacher Dashboard |
 |:---:|:---:|
-| <img src="./images/Admin_Dashboard.png" alt="Admin Dashboard" width="100%"> | <img src="./images/Faculty_Dashboard.png" alt="Teacher Dashboard" width="100%"> |
+| <img src="./images/Admin_Panel.png" alt="Admin Dashboard" width="100%"> | <img src="./images/Faculty_Dashboard.png" alt="Teacher Dashboard" width="100%"> |
 
 | Student Dashboard | Login Page |
 |:---:|:---:|
