@@ -12,7 +12,7 @@ A comprehensive, responsive web application for managing university operations. 
 
 ## 🚀 Live Demo
 
-**🔗 Client URL:** [https://student-management-system-client.onrender.com](https://student-management-system-client.onrender.com)  
+**🔗 URL:** [https://student-management-system-client.onrender.com](https://student-management-system-client.onrender.com)  
 *(Note: The server is hosted on Render's free tier. Please allow 30-60 seconds for the backend to spin up on the first request.)*
 
 ---
