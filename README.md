@@ -54,13 +54,13 @@ A comprehensive, responsive web application for managing university operations. 
 
 | Login Page | Teacher Dashboard |
 |:---:|:---:|
-| <img src="./images/Login_Page.png" alt="Login Page" width="100%"> | <img src="./images/Faculty%20Dashboard.png" alt="Teacher Dashboard" width="100%"> |
+| <img src="./images/Login_Page.png" alt="Login Page" width="100%"> | <img src="./images/Faculty_Dashboard.png" alt="Teacher Dashboard" width="100%"> |
 
 | Student Dashboard | Responsive Mobile View |
 |:---:|:---:|
-| <img src="./images/Student%20Dashboard.png" alt="Student Dashboard" width="100%"> | <img src="./images/Mobile%20View.png" alt="Mobile View" width="200"> |
+| <img src="./images/Student_Dashboard.png" alt="Student Dashboard" width="100%"> | <img src="./images/Mobile_View.png" alt="Mobile View" width="300"> |
 
-*(Tip: Filenames with spaces must use %20 in Markdown links)*
+
 
 ---
 
@@ -70,7 +70,7 @@ You can use these credentials to test the live application:
 
 | Role | Email | Password |
 | :--- | :--- | :--- |
-| **Admin** | `admin1@gmail.com` | *admin1234* |
+| **Admin** | `admin1@gmail.com` | `admin1234` |
 | **Teacher** | `teacher@cpu.edu` | `password@123` |
 | **Student** | `student@cpu.edu` | `password@123` |
 
@@ -82,5 +82,4 @@ Follow these steps to run the project on your local machine:
 
 **1. Clone the Repository**
 ```bash
-git clone [https://github.com/LakshyaSharma2005/student-management-system.git](https://github.com/LakshyaSharma2005/student-management-system.git)
-cd student-management-system
+git clone https://github.com/LakshyaSharma2005/student_management_system_client.git
