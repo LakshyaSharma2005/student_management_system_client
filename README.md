@@ -70,9 +70,9 @@ You can use these credentials to test the live application:
 
 | Role | Email | Password |
 | :--- | :--- | :--- |
-| **Admin** | `admin1@gmail.com` | *(Your Password)* |
-| **Teacher** | `teacher@cpu.edu` | `teacher123` |
-| **Student** | `student@cpu.edu` | `student123` |
+| **Admin** | `admin1@gmail.com` | *admin1234* |
+| **Teacher** | `teacher@cpu.edu` | `password@123` |
+| **Student** | `student@cpu.edu` | `password@123` |
 
 ---
 
@@ -82,5 +82,5 @@ Follow these steps to run the project on your local machine:
 
 **1. Clone the Repository**
 ```bash
-git clone [https://github.com/your-username/student-management-system.git](https://github.com/your-username/student-management-system.git)
+git clone [https://github.com/LakshyaSharma2005/student-management-system.git](https://github.com/LakshyaSharma2005/student-management-system.git)
 cd student-management-system
