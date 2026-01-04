@@ -54,13 +54,13 @@ A comprehensive, responsive web application for managing university operations. 
 
 | Login Page | Teacher Dashboard |
 |:---:|:---:|
-| <img src="./images/Login_Page.png" alt="Login Page" width="400"> | <img src="./images/Faculty Dashboard.png" alt="Teacher Dashboard" width="400"> |
+| <img src="./images/Login_Page.png" alt="Login Page" width="100%"> | <img src="./images/Faculty%20Dashboard.png" alt="Teacher Dashboard" width="100%"> |
 
 | Student Dashboard | Responsive Mobile View |
 |:---:|:---:|
-| <img src="./images/Student Dashboard.png" width="400"> | <img src="./images/Mobile View.png" alt="Mobile View" width="400"> |
+| <img src="./images/Student%20Dashboard.png" alt="Student Dashboard" width="100%"> | <img src="./images/Mobile%20View.png" alt="Mobile View" width="200"> |
 
-*(Tip: Replace these placeholder links with actual screenshots from your project for a better portfolio look)*
+*(Tip: Filenames with spaces must use %20 in Markdown links)*
 
 ---
 
